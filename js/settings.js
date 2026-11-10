@@ -7,7 +7,7 @@
   "use strict";
   const KEY = "pa.settings", NOTES = "pa.notes", ALOG = "pa.alignLog";
   const DEF = { mode: "verbose", deco: "bold", flip: "long", ox: 0, oy: 0, rot: 0, show: "all" };
-  const ROWS = ["Middle", "Top left", "Top right", "Bottom left", "Bottom right"];
+  const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Middle"];
   const CHANGES = [
     "0.3.0 · Back alignment from five readings at 0.1 mm, with the turn (skew) as well as the shift; a log of each save",
     "0.3.0 · Classic Dart test versions: nose (steps 4 and 5), top wing (7), bottom wing (9), with a test code at the bottom of the sheet",
