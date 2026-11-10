@@ -12,6 +12,7 @@
   const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
   const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.6.0 · Print the steps as shown on the plane page (blue); the planes button is red; both sit side by side",
     "0.5.0 · Print instructions on one page or both sides, separately from the alignment test",
     "0.4.0 · Printer settings: Home, Office, Library or Other, each with its own alignment and flip; the alignment test is simpler, with numbered spots and a star",
     "0.3.0 · Back alignment from five readings at 0.1 mm, with the turn (skew) as well as the shift; a log of each save",
@@ -194,6 +195,24 @@
     });
     root.APP.printPages(pages, { duplex: true, flip: o.flip });
   }
-  const api = { get, set, setPrinter, sheetOpts, planes, find, drawerHtml, wire, foot, printPlanes, planeFor, bitsOf, setBits, setWhere, renderNow, onChange: null };
+  // ---------- the steps, printed as they show on screen: picture, number and words, four to a row, twelve to a page ----------
+  const STEP_CSS = `<style>.stepsheet{width:8.5in;height:11in;box-sizing:border-box;padding:.5in;background:#fff;font-family:Arial,sans-serif;color:#3b3248;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .stepsheet h2{font-size:20px;margin:0 0 10px}
+    .stepgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .stepcard{background:#e3f0fc;border:2px solid #5d8fc2;border-radius:12px;padding:6px;font-size:12px;font-weight:600;break-inside:avoid}
+    .stepcard svg{width:100%;height:auto;background:#fff;border-radius:6px}
+    .stepcard b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#5d8fc2;color:#fff;margin-right:3px}</style>`;
+  function printSteps(p0) {
+    const p = planeFor(p0), states = root.FOLD.run(p);
+    const esc = s => root.APP.esc(s);
+    const cards = p.steps.map((st, k) => `<div class="stepcard">${root.FOLD.picture(states[k], 160, st.line || null)}<br><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : esc(st.text || "")} <small>${st.type === "valley" ? "(in)" : st.type === "mountain" ? "(out)" : st.type === "crease" ? "(in, then open)" : ""}</small></div>`);
+    cards.push(`<div class="stepcard">${root.FOLD.picture(states[states.length - 1], 160)}<br>Done!</div>`);
+    const pages = [];
+    for (let i = 0; i < cards.length; i += 12) {
+      pages.push(`${STEP_CSS}<div class="stepsheet"><h2>Paper Airplanes #${esc(p.code)} · ${esc(p.name)} · steps</h2><div class="stepgrid">${cards.slice(i, i + 12).join("")}</div></div>`);
+    }
+    root.APP.printPages(pages, { duplex: false });
+  }
+  const api = { get, set, setPrinter, printSteps, sheetOpts, planes, find, drawerHtml, wire, foot, printPlanes, planeFor, bitsOf, setBits, setWhere, renderNow, onChange: null };
   root.PA = api;
 })(window);
