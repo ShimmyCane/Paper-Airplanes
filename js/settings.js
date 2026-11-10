@@ -5,10 +5,14 @@
    Also the plane helpers: the test versions a plane was set to (A/B per group), and printing. */
 (function (root) {
   "use strict";
-  const KEY = "pa.settings", NOTES = "pa.notes", ALOG = "pa.alignLog";
-  const DEF = { mode: "verbose", deco: "bold", flip: "long", ox: 0, oy: 0, rot: 0, show: "all" };
-  const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Middle"];
+  const KEY = "pa.settings", NOTES = "pa.notes", ALOG = "pa.alignLog", PROF = "pa.printers";
+  const DEF = { printer: "home", mode: "verbose", deco: "bold", flip: "long", ox: 0, oy: 0, rot: 0, show: "all" };
+  // the printer you are using: each keeps its own alignment and printer flip, so you can switch back to it later
+  const PRINTERS = [["home", "🏠 Home"], ["office", "🏢 Office"], ["library", "📚 Library"], ["other", "🖨️ Other"]];
+  const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
+  const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.4.0 · Printer settings: Home, Office, Library or Other, each with its own alignment and flip; the alignment test is simpler, with numbered spots and a star",
     "0.3.0 · Back alignment from five readings at 0.1 mm, with the turn (skew) as well as the shift; a log of each save",
     "0.3.0 · Classic Dart test versions: nose (steps 4 and 5), top wing (7), bottom wing (9), with a test code at the bottom of the sheet",
     "0.3.0 · Printing gives only the sheets (no steps or menus), with copies; notes for improvement; this version log",
@@ -16,7 +20,28 @@
     "0.1.0 · Round 1: schematic and questions"
   ];
   const get = () => Object.assign({}, DEF, root.APP.store.get(KEY, {}));
-  const set = patch => { root.APP.store.set(KEY, Object.assign(get(), patch)); if (api.onChange) api.onChange(get()); };
+  const profiles = () => root.APP.store.get(PROF, {});
+  const pick = s => Object.fromEntries(ALIGN_KEYS.map(k => [k, s[k]]));
+  const set = patch => {
+    const next = Object.assign(get(), patch);
+    root.APP.store.set(KEY, next);
+    if (ALIGN_KEYS.some(k => k in patch) || "printer" in patch) { const pr = profiles(); pr[next.printer] = pick(next); root.APP.store.set(PROF, pr); }
+    if (api.onChange) api.onChange(get());
+  };
+  // switch printer: keep this one's settings, then load the chosen printer's (or the defaults if it is new)
+  function setPrinter(name) {
+    const cur = get(), pr = profiles();
+    pr[cur.printer] = pick(cur); root.APP.store.set(PROF, pr);
+    const nx = pr[name] || { ox: 0, oy: 0, rot: 0, flip: "long" };
+    set(Object.assign({ printer: name }, nx));
+    refresh();
+  }
+  // update the buttons and readouts from the saved settings
+  function refresh() {
+    const s = get();
+    document.querySelectorAll(".seg").forEach(g => { const v = String(s[g.dataset.set]); g.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === v)); });
+    renderNow();
+  }
   const sheetOpts = () => { const s = get(); return { mode: s.mode, deco: s.deco, flip: s.flip, align: { x: s.ox, y: s.oy, rot: s.rot } }; };
   const planes = () => (root.PA_PLANES || []).filter(p => !p.retired && (get().show === "all" || p.approved));
   const find = code => (root.PA_PLANES || []).find(p => p.code === String(code || "").toUpperCase()) || null;
@@ -37,12 +62,14 @@
     const cell = (id, label) => `<input class="field" id="${id}" type="number" step="1" min="-5" max="5" inputmode="numeric" aria-label="${label}">`;
     const rows = ROWS.map((name, i) => `<tr><td>${name}</td><td>${cell(`a${i}xf`, name + ", across, front number")}${cell(`a${i}xb`, name + ", across, back number")}</td><td>${cell(`a${i}yf`, name + ", down, front number")}${cell(`a${i}yb`, name + ", down, back number")}</td><td><small id="d${i}">–</small></td></tr>`).join("");
     return `${extra}
+      <h3>My printer</h3>${seg("printer", PRINTERS, s.printer)}
+      <p><small>Each printer remembers its own alignment and flip. Pick yours once; next time, tap it to bring back its settings.</small></p>
       <h3>Instructions on the sheet</h3>${seg("mode", [["verbose", "Lots of words"], ["short", "Number + in/out"], ["minimal", "Numbers only"]], s.mode)}
       <h3>Outside decoration</h3>
       <select class="field" id="decoSel" style="width:100%"><option value="bold"${s.deco === "bold" ? " selected" : ""}>Bold pattern</option><option value="faint"${s.deco === "faint" ? " selected" : ""}>Faint (80% see-through)</option><option value="none"${s.deco === "none" ? " selected" : ""}>None</option></select>
       <h3>Printer flips on the…</h3>${seg("flip", [["long", "Long edge"], ["short", "Short edge"]], s.flip)}
-      <h3>Back alignment · five readings</h3>
-      <p><small>Print 🧪 (two pages, 100%). At each spot, find the back mark that lines up exactly with a front mark, through the window. Type the front number and the back number, for the across row and the down column. Both 0 = perfect.</small></p>
+      <h3>Back alignment</h3>
+      <p><small><b>How to:</b> 1. Print 🧪 (two sides, 100%). 2. Hold it up to a window. 3. At each numbered spot, find the back line that matches a front line. 4. Type the two numbers. 5. Save. Print again: all 0 means it lines up.</small></p>
       <div class="row"><button class="btn" id="testPrint" type="button">🧪 Print alignment test</button></div>
       <table class="aln"><tr><th>Spot</th><th>Across: front · back</th><th>Down: front · back</th><th>mm</th></tr>${rows}</table>
       <div class="row" style="margin-top:8px"><button class="btn mint" id="alignSave" type="button">Save readings</button><button class="btn" id="alignZero" type="button">Reset to 0</button></div>
@@ -103,7 +130,7 @@
     const next = { ox: r1(s.ox + fit.x), oy: r1(s.oy + fit.y), rot: r2(s.rot + fit.rot) };
     set(next);
     const text = `readings: ${readings.map(r => `${r.x},${r.y}`).join(" · ")} → +${fit.x} across, +${fit.y} down, turn ${fit.rot}° (saved: ${next.ox}, ${next.oy}, ${next.rot}°)`;
-    root.APP.store.set(ALOG, root.APP.store.get(ALOG, []).concat([{ at: new Date().toISOString(), text, readings, fit, saved: next }]).slice(-30));
+    root.APP.store.set(ALOG, root.APP.store.get(ALOG, []).concat([{ at: new Date().toISOString(), text: `${get().printer}: ${text}`, readings, fit, saved: next }]).slice(-30));
     ROWS.forEach((_, i) => ["xf", "xb", "yf", "yb"].forEach(k => { document.getElementById("a" + i + k).value = ""; }));
     showLive();
     msg.textContent = `Saved. Left over after this correction: up to ${fit.residual} mm at one spot. ` +
@@ -115,12 +142,14 @@
   function wire() {
     document.querySelectorAll(".seg").forEach(g => g.addEventListener("click", e => {
       const b = e.target.closest("[data-v]"); if (!b) return;
+      if (g.dataset.set === "printer") { setPrinter(b.dataset.v); return; }      // loads that printer's own settings
       set({ [g.dataset.set]: b.dataset.v });
       g.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", x === b));
     }));
     const d = document.getElementById("decoSel"); if (d) d.addEventListener("change", () => set({ deco: d.value }));
     const tp = document.getElementById("testPrint"); if (tp) tp.addEventListener("click", () => { const o = sheetOpts(); root.APP.printPages(root.FOLD.testSheet({ align: o.align }), { duplex: true, flip: o.flip }); });
     const sv = document.getElementById("alignSave"); if (sv) sv.addEventListener("click", saveReadings);
+
     document.querySelectorAll(".aln input").forEach(el => el.addEventListener("input", showLive));
     const z = document.getElementById("alignZero"); if (z) z.addEventListener("click", () => {
       set({ ox: 0, oy: 0, rot: 0 });
@@ -160,6 +189,6 @@
     });
     root.APP.printPages(pages, { duplex: true, flip: o.flip });
   }
-  const api = { get, set, sheetOpts, planes, find, drawerHtml, wire, foot, printPlanes, planeFor, bitsOf, setBits, setWhere, renderNow, onChange: null };
+  const api = { get, set, setPrinter, sheetOpts, planes, find, drawerHtml, wire, foot, printPlanes, planeFor, bitsOf, setBits, setWhere, renderNow, onChange: null };
   root.PA = api;
 })(window);
