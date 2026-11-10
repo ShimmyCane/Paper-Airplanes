@@ -15,7 +15,9 @@
   const r2 = v => Math.round(v * 100) / 100;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   // the five alignment spots, in the order the readings are typed: middle, top left, top right, bottom left, bottom right
-  const SPOTS = [[425, 550], [170, 200], [680, 200], [170, 900], [680, 900]];
+  // numbered as printed on the alignment test: 1 upper left, 2 upper right, 3 lower left, 4 lower right, 5 middle
+  const SPOTS = [[170, 200], [680, 200], [170, 900], [680, 900], [425, 550]];
+  const SPOT_NAMES = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Middle"];
   // a short code from a text (FNV-1a, 4 hex digits): the test code's "hash" so a changed sheet is noticed
   const hash4 = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return (h >>> 0).toString(16).toUpperCase().padStart(8, "0").slice(0, 4); };
 
@@ -366,44 +368,54 @@ ${out[sideName].join("\n")}
   // ---------- the alignment test sheet: a vernier at each spot, hold it up to a window ----------
   // At each of the five spots there is an across row and a down column. The front has marks 1.0 mm apart (numbered i);
   // the back has marks 0.9 mm apart (numbered j). Where one back mark lines up exactly with a front mark, the back is
-  // off by i − 0.9·j mm (0.1 mm steps). Everything printed is 0.2 mm lines at 1 mm or more: it prints clean.
+  // off by i − 0.9·j mm (0.1 mm steps). Numbers are 14 pt and stack in six levels, so neighbours never touch.
   // Back numbers are drawn mirrored so they read correctly when seen through the sheet from the front.
-  // front marks i = −8…8, back marks j = −5…4: every 0.1 mm offset within ±3 mm has exactly one coinciding pair (checked)
+  // A registration star sits in the clear middle of both sides: with the back exactly aligned, the two stars coincide.
   const VP = 1.0, VQ = 0.9, VI = [-8, 8], VJ = [-5, 4], VOFF = 28;
+  const LEVELS = 6, LEVEL_H = 21, NUM = 14, STAR = { x: 425, y: 340, R: 32, r: 13 };
   const vernier = (i, j) => Math.round((i - VQ * j) * 10) / 10;      // the offset a coinciding pair reads
+  const lvl = n => ((n % LEVELS) + LEVELS) % LEVELS;                 // level for mark n (neighbours on one level are 6 marks apart)
   function testSheet(opts = {}) {
     const al = opts.align || {}, G = mat(alignMatrix(al));
-    const txt = (x, y, t, anchor) => `<text x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" font-family="Arial" font-size="7">${t}</text>`;
-    const mtxt = (x, y, t, anchor) => `<text transform="translate(${f(W - x)} ${f(y)}) scale(-1 1)" x="0" y="0" text-anchor="${anchor}" font-family="Arial" font-size="7">${t}</text>`;
     const num = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
-    let front = "", back = "";
-    for (const [sx, sy] of SPOTS) {
-      const rowY = sy - VOFF, colX = sx + VOFF;
-      for (let i = VI[0]; i <= VI[1]; i++) {                           // front: 1.0 mm pitch
-        const fx = sx + i * VP * MM, fy = sy + i * VP * MM;
-        front += `<path d="M${f(fx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
-        front += `<path d="M${f(colX - 5)} ${f(fy)} H${f(colX + 5)}" stroke="#111" stroke-width="0.8"/>`;
-        const odd = Math.abs(i) % 2;                                    // labels alternate between two heights so they do not touch
-        front += txt(fx, rowY - (odd ? 8 : 17), num(i), "middle") + txt(colX + (odd ? 8 : 17), fy + 2.5, num(i), "start");
+    // one piece of text in FRONT coordinates (X, Y): on the back it is mirrored, so it reads from the front
+    const text = (X, Y, t, anchor, back) => back
+      ? `<text transform="translate(${f(W - X)} ${f(Y)}) scale(-1 1)" x="0" y="0" text-anchor="${anchor}" font-family="Arial" font-size="${NUM}">${t}</text>`
+      : `<text x="${f(X)}" y="${f(Y)}" text-anchor="${anchor}" font-family="Arial" font-size="${NUM}">${t}</text>`;
+    // the marks of one spot, in front coordinates, for one side
+    const spot = ([sx, sy], back) => {
+      const up = sy > 425 ? -1 : 1;                                   // rows and numbers go away from the middle of the sheet
+      const rowY = sy + up * VOFF, colX = sx + VOFF, P = back ? VQ : VP;
+      const lo = back ? VJ : VI, rng = [];
+      let out = "";
+      for (let n = lo[0]; n <= lo[1]; n++) {
+        const dx = sx + n * P * MM, dy = sy + n * P * MM;               // mark position along the row and the column
+        const cx = back ? W - dx : dx;                                    // page x of the across mark (mirrored on the back)
+        out += `<path d="M${f(back ? W - dx : dx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
+        out += `<path d="M${f(back ? W - colX + 5 : colX - 5)} ${f(dy)} H${f(back ? W - colX - 5 : colX + 5)}" stroke="#111" stroke-width="0.8"/>`;
+        const k = lvl(n - lo[0]);
+        out += text(dx, rowY + up * ((up < 0 ? 8 : 18) + k * LEVEL_H), num(n), "middle", back); // across: numbers stack away from the row, clear of the ticks
+        out += text(colX + 8 + k * LEVEL_H, dy + 5, num(n), "start", back);                      // down: numbers stack to the right
       }
-      for (let j = VJ[0]; j <= VJ[1]; j++) {                           // back: 0.9 mm pitch (drawn inside the alignment move)
-        const bx = sx + j * VQ * MM, by = sy + j * VQ * MM;
-        back += `<path d="M${f(W - bx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
-        back += `<path d="M${f(W - colX + 5)} ${f(by)} H${f(W - colX - 5)}" stroke="#111" stroke-width="0.8"/>`;
-        const oddJ = Math.abs(j) % 2;
-        back += mtxt(W - bx, rowY + (oddJ ? 16 : 25), num(j), "middle") + mtxt(W - (colX - (oddJ ? 8 : 17)), by + 2.5, num(j), "end");
-      }
-    }
+      return out;
+    };
+    // names sit clear of the stacks: above the upper spots, below the lower ones, and to the left of the middle one
+    const nameAt = ([sx, sy]) => sy < 425 ? [sx - 20, sy - 46, "start"] : sy > 425 ? [sx, sy + 56, "middle"] : [sx - 42, sy + 6, "end"];
+    const names = (back) => SPOTS.map((sp, k) => { const [x, y, a] = nameAt(sp); return text(x, y, SPOT_NAMES[k], a, back); }).join("");
+    const starPts = [];
+    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, R = k % 2 ? STAR.r : STAR.R; starPts.push(`${f(STAR.x + R * Math.cos(a))} ${f(STAR.y + R * Math.sin(a))}`); }
+    const star = `<path d="M${starPts.join(" L")} Z" fill="none" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/>`;
     const front_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
-      <text x="425" y="70" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
-      <text x="425" y="104" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold this page to a window and look through it to the back.</text>
-      <text x="425" y="128" text-anchor="middle" font-family="Arial" font-size="16">At each spot, find the back mark that lines up exactly with a front mark (across: row above; down: column right).</text>
-      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Write the front number and the back number for each row and column. Back numbers read correctly from here.</text>
-      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">⚙️ → Back alignment: type them, Save. Print again: a perfect sheet shows 0 and 0 everywhere.</text>
-      ${front}${ruler(310, 930)}</svg>`;
+      <text x="425" y="62" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
+      <text x="425" y="92" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold this page to a window and look through it to the back.</text>
+      <text x="425" y="116" text-anchor="middle" font-family="Arial" font-size="16">At each numbered spot, find the back mark that lines up exactly with a front mark (across: row; down: column).</text>
+      ${star}
+      ${SPOTS.map(sp => spot(sp, false)).join("")}${names(false)}${ruler(48, 470)}
+      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Write the front and back number for each row and column. Back numbers read correctly from here.</text>
+      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">⚙️ → Back alignment: type them, Save. Print again: a perfect sheet shows 0 and 0 everywhere.</text></svg>`;
     const back_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
       <text x="425" y="1060" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Back · saved: across ${al.x || 0} mm · down ${al.y || 0} mm · turn ${al.rot || 0}°</text>
-      <g transform="${G}">${back}</g></svg>`;
+      <g transform="${G}">${SPOTS.map(sp => spot(sp, true)).join("")}${names(true)}${star}</g></svg>`;
     return [front_, back_];
   }
 
@@ -414,5 +426,5 @@ ${out[sideName].join("\n")}
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${fcs.map(fc => `<path d="M${folded(fc).map(p => f(6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2) + " " + f(6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2)).join(" L")} Z" fill="${sideOf(fc) === "front" ? "#fff" : "#e8e1cf"}" stroke="#3b3248" stroke-width="1.6" stroke-linejoin="round"/>`).join("")}${hi ? (() => { const [p, q] = hi; const P = [6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2], Q = [6 + (q[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (q[1] - bb.y0) * s + (size - 12 - h * s) / 2]; return `<clipPath id="c${Math.round(P[0] * 7 + Q[1])}"><rect x="0" y="0" width="${size}" height="${size}"/></clipPath><path d="M${f(P[0])} ${f(P[1])} L${f(Q[0])} ${f(Q[1])}" stroke="#e0604a" stroke-width="2.5" stroke-dasharray="6 4"/>`; })() : ""}</svg>`;
   }
 
-  root.FOLD = { W, H, MM, INSET, SPOTS, VI, VJ, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
+  root.FOLD = { W, H, MM, INSET, SPOTS, SPOT_NAMES, STAR, VI, VJ, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
 })(typeof window !== "undefined" ? window : globalThis);
