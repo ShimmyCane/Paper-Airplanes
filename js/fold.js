@@ -16,8 +16,8 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   // the five alignment spots, in the order the readings are typed: middle, top left, top right, bottom left, bottom right
   // numbered as printed on the alignment test: 1 upper left, 2 upper right, 3 lower left, 4 lower right, 5 middle
-  const SPOTS = [[170, 200], [680, 200], [170, 900], [680, 900], [425, 550]];
-  const SPOT_NAMES = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Middle"];
+  const SPOTS = [[170, 200], [680, 200], [170, 900], [680, 900], [425, 900]];
+  const SPOT_NAMES = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   // a short code from a text (FNV-1a, 4 hex digits): the test code's "hash" so a changed sheet is noticed
   const hash4 = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return (h >>> 0).toString(16).toUpperCase().padStart(8, "0").slice(0, 4); };
 
@@ -372,47 +372,52 @@ ${out[sideName].join("\n")}
   // Back numbers are drawn mirrored so they read correctly when seen through the sheet from the front.
   // A registration star sits in the clear middle of both sides: with the back exactly aligned, the two stars coincide.
   const VP = 1.0, VQ = 0.9, VI = [-8, 8], VJ = [-5, 4], VOFF = 28;
-  const LEVELS = 6, LEVEL_H = 21, NUM = 14, STAR = { x: 425, y: 340, R: 32, r: 13 };
+  const LEVELS = 6, LEVEL_H = 21, NUM = 14;
+  // the registration star: centred on the page, a third of its width (about 285 of 850 units)
+  const STAR = { x: 425, y: 550, R: 150, r: 57 };
   const vernier = (i, j) => Math.round((i - VQ * j) * 10) / 10;      // the offset a coinciding pair reads
   const lvl = n => ((n % LEVELS) + LEVELS) % LEVELS;                 // level for mark n (neighbours on one level are 6 marks apart)
   function testSheet(opts = {}) {
     const al = opts.align || {}, G = mat(alignMatrix(al));
     const num = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
-    // one piece of text in FRONT coordinates (X, Y): on the back it is mirrored, so it reads from the front
+    // text in FRONT coordinates (X, Y); on the back it is mirrored so it reads from the front
     const text = (X, Y, t, anchor, back) => back
       ? `<text transform="translate(${f(W - X)} ${f(Y)}) scale(-1 1)" x="0" y="0" text-anchor="${anchor}" font-family="Arial" font-size="${NUM}">${t}</text>`
       : `<text x="${f(X)}" y="${f(Y)}" text-anchor="${anchor}" font-family="Arial" font-size="${NUM}">${t}</text>`;
-    // the marks of one spot, in front coordinates, for one side
+    const line = (x1, y1, x2, y2, back) => back
+      ? `<path d="M${f(W - x1)} ${f(y1)} L${f(W - x2)} ${f(y2)}" stroke="#111" stroke-width="0.9"/>`
+      : `<path d="M${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)}" stroke="#111" stroke-width="0.9"/>`;
+    // one spot: each mark is a long line out from its axis, ending just short of its number
     const spot = ([sx, sy], back) => {
-      const up = sy > 425 ? -1 : 1;                                   // rows and numbers go away from the middle of the sheet
+      const up = sy > 425 ? -1 : 1;                                    // rows and numbers run away from the middle of the sheet
       const rowY = sy + up * VOFF, colX = sx + VOFF, P = back ? VQ : VP;
-      const lo = back ? VJ : VI, rng = [];
+      const lo = back ? VJ : VI;
       let out = "";
       for (let n = lo[0]; n <= lo[1]; n++) {
-        const dx = sx + n * P * MM, dy = sy + n * P * MM;               // mark position along the row and the column
-        const cx = back ? W - dx : dx;                                    // page x of the across mark (mirrored on the back)
-        out += `<path d="M${f(back ? W - dx : dx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
-        out += `<path d="M${f(back ? W - colX + 5 : colX - 5)} ${f(dy)} H${f(back ? W - colX - 5 : colX + 5)}" stroke="#111" stroke-width="0.8"/>`;
-        const k = lvl(n - lo[0]);
-        out += text(dx, rowY + up * ((up < 0 ? 8 : 18) + k * LEVEL_H), num(n), "middle", back); // across: numbers stack away from the row, clear of the ticks
-        out += text(colX + 8 + k * LEVEL_H, dy + 5, num(n), "start", back);                      // down: numbers stack to the right
+        const dx = sx + n * P * MM, dy = sy + n * P * MM, k = lvl(n - lo[0]);
+        const dAcross = 8 + k * LEVEL_H, dAcrossText = dAcross + 11;   // distance from the axis: line end, then text baseline
+        out += line(dx, rowY, dx, rowY + up * dAcross, back);            // across: long line to the number
+        out += text(dx, rowY + up * dAcrossText, num(n), "middle", back);
+        const xDown = colX + 8 + k * LEVEL_H;                            // down: long line to the number, which starts there
+        out += line(colX, dy, xDown, dy, back);
+        out += text(xDown + 2, dy + 5, num(n), "start", back);
       }
       return out;
     };
-    // names sit clear of the stacks: above the upper spots, below the lower ones, and to the left of the middle one
-    const nameAt = ([sx, sy]) => sy < 425 ? [sx - 20, sy - 46, "start"] : sy > 425 ? [sx, sy + 56, "middle"] : [sx - 42, sy + 6, "end"];
+    // names sit clear of the stacks: above the upper spots, below the lower ones
+    const nameAt = ([sx, sy]) => sy < 425 ? [sx - 20, sy - 46, "start"] : [sx, sy + 56, "middle"];
     const names = (back) => SPOTS.map((sp, k) => { const [x, y, a] = nameAt(sp); return text(x, y, SPOT_NAMES[k], a, back); }).join("");
     const starPts = [];
     for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, R = k % 2 ? STAR.r : STAR.R; starPts.push(`${f(STAR.x + R * Math.cos(a))} ${f(STAR.y + R * Math.sin(a))}`); }
     const star = `<path d="M${starPts.join(" L")} Z" fill="none" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/>`;
     const front_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
-      <text x="425" y="62" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
-      <text x="425" y="92" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold this page to a window and look through it to the back.</text>
-      <text x="425" y="116" text-anchor="middle" font-family="Arial" font-size="16">At each numbered spot, find the back mark that lines up exactly with a front mark (across: row; down: column).</text>
+      <text x="425" y="50" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · alignment test (front)</text>
+      <text x="425" y="82" text-anchor="middle" font-family="Arial" font-size="18">Hold this page up to a window.</text>
+      <text x="425" y="108" text-anchor="middle" font-family="Arial" font-size="18">At each numbered spot, find the back line that matches a front line.</text>
       ${star}
-      ${SPOTS.map(sp => spot(sp, false)).join("")}${names(false)}${ruler(48, 470)}
-      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Write the front and back number for each row and column. Back numbers read correctly from here.</text>
-      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">⚙️ → Back alignment: type them, Save. Print again: a perfect sheet shows 0 and 0 everywhere.</text></svg>`;
+      ${SPOTS.map(sp => spot(sp, false)).join("")}${names(false)}
+      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="18">Write the front number and the back number for each spot.</text>
+      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="18">Type them in ⚙️ → Back alignment, then Save. Print again to check.</text></svg>`;
     const back_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
       <text x="425" y="1060" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Back · saved: across ${al.x || 0} mm · down ${al.y || 0} mm · turn ${al.rot || 0}°</text>
       <g transform="${G}">${SPOTS.map(sp => spot(sp, true)).join("")}${names(true)}${star}</g></svg>`;
