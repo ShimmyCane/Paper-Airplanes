@@ -4,7 +4,7 @@
 
 **State (2026-11-10, round 3, v0.3.0):**
 - 7 planes in `data/planes.js`, all previews. Classic Dart (PA-01) has three test-version groups: nose (steps 4–5), top wing (7), bottom wing (9): 8 combinations, each with a test code printed at the top of the front (`Test code PA-01 · 100 · #3811`).
-- ⚙️: back alignment is five readings (middle + four corners) at 0.1 mm → one shift and one turn (skew), saved with a log. Notes for improvement (device, with page, plane, test code, version). Version log at the bottom.
+- ⚙️: back alignment is a vernier at five spots (across and down; front 1.0 mm marks, back 0.9 mm marks): 0.1 mm steps, read as front − 0.9 × back. One shift and one turn fitted, saved with a log. Notes for improvement (device, with page, plane, test code, version). Version log at the bottom.
 - Printing: only the sheets print (`body > *:not(#printArea)` hidden in print), with copies on the plane page and Print several.
 - `tools/check_planes.js` checks all 14 versions in all three modes, the alignment geometry, a five-reading round trip, and reports any fallback placement that overlaps.
 - Smoke-tested in headless Chromium at 390 px and 1180 px: no JS errors, no horizontal scroll, print area = the sheets, PDF page count = sheets.
