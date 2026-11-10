@@ -363,36 +363,48 @@ ${out[sideName].join("\n")}
     return [page("front", frontExtra), page("back", backExtra)];
   }
 
-  // ---------- the alignment test sheet: hold it up to a window ----------
-  // Five spots (middle, then the corners). Front: a scale at each: small tick 0.1 mm, middle tick 0.5 mm, long tick 1 mm (numbered).
-  // Back: a fine ring and cross at each spot, moved by the saved alignment. Read it against the scale: that is the reading.
+  // ---------- the alignment test sheet: a vernier at each spot, hold it up to a window ----------
+  // At each of the five spots there is an across row and a down column. The front has marks 1.0 mm apart (numbered i);
+  // the back has marks 0.9 mm apart (numbered j). Where one back mark lines up exactly with a front mark, the back is
+  // off by i − 0.9·j mm (0.1 mm steps). Everything printed is 0.2 mm lines at 1 mm or more: it prints clean.
+  // Back numbers are drawn mirrored so they read correctly when seen through the sheet from the front.
+  // front marks i = −8…8, back marks j = −5…4: every 0.1 mm offset within ±3 mm has exactly one coinciding pair (checked)
+  const VP = 1.0, VQ = 0.9, VI = [-8, 8], VJ = [-5, 4], VOFF = 28;
+  const vernier = (i, j) => Math.round((i - VQ * j) * 10) / 10;      // the offset a coinciding pair reads
   function testSheet(opts = {}) {
     const al = opts.align || {}, G = mat(alignMatrix(al));
-    // ±3 mm in 0.1 mm steps. A 0.1 mm tick is 0.39 units apart, so the hairlines are thin (0.15 unit ≈ 0.1 pt) and the
-    // whole-mm numbers alternate above and below the rule, so neighbours do not touch.
-    const scale = (x, y) => {
-      let s = `<path d="M${f(x - 3 * MM)} ${y} H${f(x + 3 * MM)} M${x} ${f(y - 3 * MM)} V${f(y + 3 * MM)}" stroke="#111" stroke-width="0.4"/>`;
-      for (let i = -30; i <= 30; i++) {
-        const k = i % 10 ? (i % 5 ? 4 : 7) : 11, d = (i / 10) * MM, sw = i % 10 ? (i % 5 ? 0.15 : 0.3) : 0.5;
-        s += `<path d="M${f(x + d)} ${f(y - k)} V${f(y + k)}" stroke="#111" stroke-width="${sw}"/><path d="M${f(x - k)} ${f(y + d)} H${f(x + k)}" stroke="#111" stroke-width="${sw}"/>`;
-        if (i && !(i % 10)) {
-          const n = Math.abs(i) / 10, lab = (i > 0 ? "+" : "−") + n, up = n % 2 === 1;
-          s += `<text x="${f(x + d)}" y="${up ? y - 15 : y + 22}" text-anchor="middle" font-family="Arial" font-size="7">${lab}</text><text x="${up ? x + 15 : x - 15}" y="${f(y + d + 2.5)}" text-anchor="${up ? "start" : "end"}" font-family="Arial" font-size="7">${lab}</text>`;
-        }
+    const txt = (x, y, t, anchor) => `<text x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" font-family="Arial" font-size="7">${t}</text>`;
+    const mtxt = (x, y, t, anchor) => `<text transform="translate(${f(W - x)} ${f(y)}) scale(-1 1)" x="0" y="0" text-anchor="${anchor}" font-family="Arial" font-size="7">${t}</text>`;
+    const num = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
+    let front = "", back = "";
+    for (const [sx, sy] of SPOTS) {
+      const rowY = sy - VOFF, colX = sx + VOFF;
+      for (let i = VI[0]; i <= VI[1]; i++) {                           // front: 1.0 mm pitch
+        const fx = sx + i * VP * MM, fy = sy + i * VP * MM;
+        front += `<path d="M${f(fx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
+        front += `<path d="M${f(colX - 5)} ${f(fy)} H${f(colX + 5)}" stroke="#111" stroke-width="0.8"/>`;
+        const odd = Math.abs(i) % 2;                                    // labels alternate between two heights so they do not touch
+        front += txt(fx, rowY - (odd ? 8 : 17), num(i), "middle") + txt(colX + (odd ? 8 : 17), fy + 2.5, num(i), "start");
       }
-      return s;
-    };
-    const front = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
+      for (let j = VJ[0]; j <= VJ[1]; j++) {                           // back: 0.9 mm pitch (drawn inside the alignment move)
+        const bx = sx + j * VQ * MM, by = sy + j * VQ * MM;
+        back += `<path d="M${f(W - bx)} ${f(rowY - 5)} V${f(rowY + 5)}" stroke="#111" stroke-width="0.8"/>`;
+        back += `<path d="M${f(W - colX + 5)} ${f(by)} H${f(W - colX - 5)}" stroke="#111" stroke-width="0.8"/>`;
+        const oddJ = Math.abs(j) % 2;
+        back += mtxt(W - bx, rowY + (oddJ ? 16 : 25), num(j), "middle") + mtxt(W - (colX - (oddJ ? 8 : 17)), by + 2.5, num(j), "end");
+      }
+    }
+    const front_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
       <text x="425" y="70" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
-      <text x="425" y="104" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold it to a window and read the scales from THIS side.</text>
-      <text x="425" y="128" text-anchor="middle" font-family="Arial" font-size="16">Small tick = 0.1 mm · middle tick = 0.5 mm · long tick = 1 mm (numbered).</text>
-      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Read the back ring and cross at each of the five spots, to 0.1 mm.</text>
-      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">Right or down = +, left or up = −. Type them in ⚙️ → Back alignment, then print again.</text>
-      ${SPOTS.map(([x, y]) => scale(x, y)).join("")}${ruler(310, 930)}</svg>`;
-    const back = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
+      <text x="425" y="104" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold this page to a window and look through it to the back.</text>
+      <text x="425" y="128" text-anchor="middle" font-family="Arial" font-size="16">At each spot, find the back mark that lines up exactly with a front mark (across: row above; down: column right).</text>
+      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Write the front number and the back number for each row and column. Back numbers read correctly from here.</text>
+      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">⚙️ → Back alignment: type them, Save. Print again: a perfect sheet shows 0 and 0 everywhere.</text>
+      ${front}${ruler(310, 930)}</svg>`;
+    const back_ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
       <text x="425" y="1060" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Back · saved: across ${al.x || 0} mm · down ${al.y || 0} mm · turn ${al.rot || 0}°</text>
-      <g transform="${G}">${SPOTS.map(([x, y]) => { const bx = W - x; return `<circle cx="${bx}" cy="${y}" r="${f(1.5 * MM)}" fill="none" stroke="#111" stroke-width="0.8"/><path d="M${f(bx - 3 * MM)} ${y} H${f(bx + 3 * MM)} M${bx} ${f(y - 3 * MM)} V${f(y + 3 * MM)}" stroke="#111" stroke-width="0.8"/>`; }).join("")}</g></svg>`;
-    return [front, back];
+      <g transform="${G}">${back}</g></svg>`;
+    return [front_, back_];
   }
 
   // ---------- a small picture of the model after a step (for the screen) ----------
@@ -402,5 +414,5 @@ ${out[sideName].join("\n")}
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${fcs.map(fc => `<path d="M${folded(fc).map(p => f(6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2) + " " + f(6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2)).join(" L")} Z" fill="${sideOf(fc) === "front" ? "#fff" : "#e8e1cf"}" stroke="#3b3248" stroke-width="1.6" stroke-linejoin="round"/>`).join("")}${hi ? (() => { const [p, q] = hi; const P = [6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2], Q = [6 + (q[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (q[1] - bb.y0) * s + (size - 12 - h * s) / 2]; return `<clipPath id="c${Math.round(P[0] * 7 + Q[1])}"><rect x="0" y="0" width="${size}" height="${size}"/></clipPath><path d="M${f(P[0])} ${f(P[1])} L${f(Q[0])} ${f(Q[1])}" stroke="#e0604a" stroke-width="2.5" stroke-dasharray="6 4"/>`; })() : ""}</svg>`;
   }
 
-  root.FOLD = { W, H, MM, INSET, SPOTS, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, withVariant, hash4 };
+  root.FOLD = { W, H, MM, INSET, SPOTS, VI, VJ, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
 })(typeof window !== "undefined" ? window : globalThis);

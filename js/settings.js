@@ -34,16 +34,17 @@
   // ---------- the ⚙️ drawer ----------
   function drawerHtml(extra = "") {
     const s = get();
-    const rows = ROWS.map((name, i) => `<tr><td>${name}</td><td><input class="field" id="a${i}x" type="number" step="0.1" inputmode="decimal" aria-label="${name}, across (mm)"></td><td><input class="field" id="a${i}y" type="number" step="0.1" inputmode="decimal" aria-label="${name}, down (mm)"></td></tr>`).join("");
+    const cell = (id, label) => `<input class="field" id="${id}" type="number" step="1" min="-5" max="5" inputmode="numeric" aria-label="${label}">`;
+    const rows = ROWS.map((name, i) => `<tr><td>${name}</td><td>${cell(`a${i}xf`, name + ", across, front number")}${cell(`a${i}xb`, name + ", across, back number")}</td><td>${cell(`a${i}yf`, name + ", down, front number")}${cell(`a${i}yb`, name + ", down, back number")}</td><td><small id="d${i}">–</small></td></tr>`).join("");
     return `${extra}
       <h3>Instructions on the sheet</h3>${seg("mode", [["verbose", "Lots of words"], ["short", "Number + in/out"], ["minimal", "Numbers only"]], s.mode)}
       <h3>Outside decoration</h3>
       <select class="field" id="decoSel" style="width:100%"><option value="bold"${s.deco === "bold" ? " selected" : ""}>Bold pattern</option><option value="faint"${s.deco === "faint" ? " selected" : ""}>Faint (80% see-through)</option><option value="none"${s.deco === "none" ? " selected" : ""}>None</option></select>
       <h3>Printer flips on the…</h3>${seg("flip", [["long", "Long edge"], ["short", "Short edge"]], s.flip)}
       <h3>Back alignment · five readings</h3>
-      <p><small>Print 🧪 (two pages, 100%). Hold the test to a window. At each of the five spots, read how far the thick back ring and cross sit from the scale's 0, to 0.1 mm. Right or down = +, left or up = −.</small></p>
+      <p><small>Print 🧪 (two pages, 100%). At each spot, find the back mark that lines up exactly with a front mark, through the window. Type the front number and the back number, for the across row and the down column. Both 0 = perfect.</small></p>
       <div class="row"><button class="btn" id="testPrint" type="button">🧪 Print alignment test</button></div>
-      <table class="aln"><tr><th>Spot</th><th>Across (mm)</th><th>Down (mm)</th></tr>${rows}</table>
+      <table class="aln"><tr><th>Spot</th><th>Across: front · back</th><th>Down: front · back</th><th>mm</th></tr>${rows}</table>
       <div class="row" style="margin-top:8px"><button class="btn mint" id="alignSave" type="button">Save readings</button><button class="btn" id="alignZero" type="button">Reset to 0</button></div>
       <p><small id="alignMsg"></small></p>
       <p><small>Saved now: across <b id="oxNow">${s.ox}</b> mm · down <b id="oyNow">${s.oy}</b> mm · turn <b id="rotNow">${s.rot}</b>°</small></p>
@@ -79,11 +80,23 @@
     }
   }
 
+  // a coinciding pair (front number i, back number j) reads as i − 0.9·j mm
+  const pairValue = (fEl, bEl) => {
+    const i = parseInt(document.getElementById(fEl).value, 10), j = parseInt(document.getElementById(bEl).value, 10);
+    if (isNaN(i) || isNaN(j) || i < -8 || i > 8 || j < -5 || j > 4) return null;
+    return root.FOLD.vernier(i, j);
+  };
+  function showLive() {
+    ROWS.forEach((_, k) => {
+      const x = pairValue("a" + k + "xf", "a" + k + "xb"), y = pairValue("a" + k + "yf", "a" + k + "yb");
+      const el = document.getElementById("d" + k); if (el) el.textContent = x == null || y == null ? "–" : `${x >= 0 ? "+" : ""}${x}, ${y >= 0 ? "+" : ""}${y}`;
+    });
+  }
   function saveReadings() {
     const msg = document.getElementById("alignMsg"), readings = [];
     for (let i = 0; i < ROWS.length; i++) {
-      const x = parseFloat(document.getElementById("a" + i + "x").value), y = parseFloat(document.getElementById("a" + i + "y").value);
-      if (isNaN(x) || isNaN(y)) { msg.textContent = "Type all ten numbers (use 0 where the cross sits on the 0). Nothing was saved."; return; }
+      const x = pairValue("a" + i + "xf", "a" + i + "xb"), y = pairValue("a" + i + "yf", "a" + i + "yb");
+      if (x == null || y == null) { msg.textContent = "Type whole numbers in all twenty boxes: front −8 to 8, back −5 to 4 (0 and 0 = aligned). Nothing was saved."; return; }
       readings.push({ x, y });
     }
     const fit = root.FOLD.fitAlign(readings), s = get();
@@ -91,10 +104,11 @@
     set(next);
     const text = `readings: ${readings.map(r => `${r.x},${r.y}`).join(" · ")} → +${fit.x} across, +${fit.y} down, turn ${fit.rot}° (saved: ${next.ox}, ${next.oy}, ${next.rot}°)`;
     root.APP.store.set(ALOG, root.APP.store.get(ALOG, []).concat([{ at: new Date().toISOString(), text, readings, fit, saved: next }]).slice(-30));
-    ROWS.forEach((_, i) => { document.getElementById("a" + i + "x").value = ""; document.getElementById("a" + i + "y").value = ""; });
+    ROWS.forEach((_, i) => ["xf", "xb", "yf", "yb"].forEach(k => { document.getElementById("a" + i + k).value = ""; }));
+    showLive();
     msg.textContent = `Saved. Left over after this correction: up to ${fit.residual} mm at one spot. ` +
-      (fit.residual > 0.2 ? "That is more than 0.2 mm: read the spot that looks off again, then save once more. " : "") +
-      "Print the test again: it should read 0.0 everywhere.";
+      (fit.residual > 0.2 ? "That is more than 0.2 mm: check the pair that looks off, then save once more. " : "") +
+      "Print the test again: it should read 0 and 0 everywhere.";
     renderNow();
   }
 
@@ -107,6 +121,7 @@
     const d = document.getElementById("decoSel"); if (d) d.addEventListener("change", () => set({ deco: d.value }));
     const tp = document.getElementById("testPrint"); if (tp) tp.addEventListener("click", () => { const o = sheetOpts(); root.APP.printPages(root.FOLD.testSheet({ align: o.align }), { duplex: true, flip: o.flip }); });
     const sv = document.getElementById("alignSave"); if (sv) sv.addEventListener("click", saveReadings);
+    document.querySelectorAll(".aln input").forEach(el => el.addEventListener("input", showLive));
     const z = document.getElementById("alignZero"); if (z) z.addEventListener("click", () => {
       set({ ox: 0, oy: 0, rot: 0 });
       root.APP.store.set(ALOG, root.APP.store.get(ALOG, []).concat([{ at: new Date().toISOString(), text: "reset to 0", saved: { ox: 0, oy: 0, rot: 0 } }]).slice(-30));

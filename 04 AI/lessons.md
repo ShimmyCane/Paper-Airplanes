@@ -27,3 +27,9 @@
 ### Combined from the Index repo (2026-11-10)
 
 Taken from `Index/04 AI/lessons_pool.md` §10 (settings), §Feedback, and §Print/Layout, and kept where they apply here: one gear everywhere; errors opt-in at the bottom; hide the gear in print; the test page at phone width; a feedback box that lives inside the panel that opens it; fingerprint published pieces so a later change is noticed; and check the whole page, not just the picture.
+
+## 2026-11-10 (vernier)
+
+- **A dense scale is not a precise scale.** Ticks 0.1 mm apart merge when printed. Use a vernier: printable marks (1.0 mm and 0.9 mm pitch) and a reading in 0.1 mm steps from the coinciding pair. Check the printed size of the smallest feature, not only the geometry. _(Paper Airplanes)_
+- **Check uniqueness, not only fit.** A vernier with ±5 marks had two coinciding pairs for ±0.5 mm. The checker now asserts exactly one pair per 0.1 mm step within the range.
+- **Find the mirror bug by drawing it.** Overlaying the mirrored back on the front exposed back labels anchored on the wrong side.

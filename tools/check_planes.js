@@ -5,7 +5,7 @@
      (in all three instruction modes), for every combination of test versions
    - pages have no NaN; the finished model is smaller than the sheet (it really folded)
    - test versions: the test code is on the front
-   - alignment: the back's move matches the geometry (shift and turn, seen from the front); five readings fit back exactly
+   - alignment: the back's move matches the geometry (shift and turn, seen from the front); a vernier reading fits back exactly
    - fingerprints in tools/fingerprints.json (verbose, bold, no alignment, default versions); --update only when a change is intended
    Usage: node tools/check_planes.js [--update] */
 const fs = require("fs"), path = require("path"), vm = require("vm"), crypto = require("crypto");
@@ -34,15 +34,31 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     if (Math.hypot(got[0] - want[0], got[1] - want[1]) > 0.02) problems.push(`alignment: back spot (${x}, ${y}) moves to ${got.map(n => n.toFixed(3))} mm, expected ${want.map(n => n.toFixed(3))}`);
   });
 }
-// ---- five readings: a known error comes back exactly from the fit, and the saved correction takes it to zero
+// ---- vernier: at each spot the sheet shows the pair (i, j) that lines up; the form reads i − 0.9·j. A known error must come back
 {
   const e = { x: 0.7, y: -1.2, rot: 0.35 }, th = e.rot * Math.PI / 180;
-  const readings = FOLD.SPOTS.map(([x, y]) => { const v = [(x - W / 2) / MM, (y - H / 2) / MM]; return { x: e.x - th * v[1], y: e.y + th * v[0] }; });
-  const fit = FOLD.fitAlign(readings);
-  if (!near(fit.x, e.x, 0.01) || !near(fit.y, e.y, 0.01) || !near(fit.rot, e.rot, 0.01) || fit.residual > 0.01) problems.push(`fitAlign: got ${JSON.stringify(fit)}, expected ${JSON.stringify(e)}`);
-  // a reading that is off at one spot is left over as residual, not hidden in the shift
+  const err = (x, y) => { const v = [(x - W / 2) / MM, (y - H / 2) / MM]; return [e.x - th * v[1], e.y + th * v[0]]; };
+  const pairFor = d => {                                       // the coinciding pair the eye would find for a displacement d (mm)
+    let best = null;
+    for (let i = FOLD.VI[0]; i <= FOLD.VI[1]; i++) for (let j = FOLD.VJ[0]; j <= FOLD.VJ[1]; j++) {
+      const err1 = Math.abs(FOLD.vernier(i, j) - d); if (!best || err1 < best.err) best = { i, j, err: err1 };
+    }
+    return best;
+  };
+  const readings = FOLD.SPOTS.map(([x, y]) => {
+    const [dx, dy] = err(x, y), px = pairFor(dx), py = pairFor(dy);
+    return { x: FOLD.vernier(px.i, px.j), y: FOLD.vernier(py.i, py.j) };
+  });
+  const fit = FOLD.fitAlign(readings), tol = 0.06;                       // readings are to 0.1 mm
+  if (!near(fit.x, e.x, tol) || !near(fit.y, e.y, tol) || !near(fit.rot, e.rot, 0.1) || fit.residual > 0.1) problems.push(`vernier fit: got ${JSON.stringify(fit)}, expected ${JSON.stringify(e)}`);
   const bad = readings.map((r, i) => (i === 3 ? { x: r.x + 0.5, y: r.y } : r));
-  if (FOLD.fitAlign(bad).residual < 0.2) problems.push("fitAlign: a misread spot does not show as a residual");
+  if (FOLD.fitAlign(bad).residual < 0.2) problems.push("vernier fit: a misread spot does not show as a residual");
+  // every 0.1 mm offset from −3 to 3 has exactly one coinciding pair on the sheet, so the reading is never ambiguous
+  for (let k = -30; k <= 30; k++) {                                      // within ±3 mm, the range the sheet reads
+    const d = k / 10; let n = 0;
+    for (let i = FOLD.VI[0]; i <= FOLD.VI[1]; i++) for (let j = FOLD.VJ[0]; j <= FOLD.VJ[1]; j++) if (Math.abs(FOLD.vernier(i, j) - d) < 1e-9) n++;
+    if (n !== 1) { problems.push(`vernier: ${d} mm has ${n} coinciding pairs (need exactly 1)`); break; }
+  }
 }
 FOLD.testSheet({ align: { x: 1.5, y: -2, rot: 0.4 } }).forEach((s, i) => { if (/NaN|undefined/.test(s)) problems.push("alignment test page " + (i + 1) + " has NaN"); });
 
@@ -78,4 +94,4 @@ if (!problems.length && (update || !fs.existsSync(FP))) { fs.writeFileSync(FP, J
 if (notes.length) console.log("ℹ️  layout notes (fine, but worth a look):\n  " + notes.join("\n  "));
 if (problems.length) { console.log("❌ " + problems.length + " problem(s):\n" + problems.join("\n")); process.exit(1); }
 const combos = PA_PLANES.reduce((s, p) => s + (p.variants ? 2 ** p.variants.length : 1), 0);
-console.log(`✅ ${PA_PLANES.length} planes pass in all three instruction modes (${combos} versions in all); alignment geometry and five-reading fit pass.`);
+console.log(`✅ ${PA_PLANES.length} planes pass in all three instruction modes (${combos} versions in all); alignment geometry and the vernier fit pass.`);

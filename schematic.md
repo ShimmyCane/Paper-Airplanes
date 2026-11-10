@@ -52,19 +52,15 @@ The canard is on hold: a true canard needs a cut or a second piece of paper (con
 
 Instructions (lots of words · number + in/out · numbers only) · outside decoration · printer flip · **back alignment** (five readings at 0.1 mm, see below) · planes to show (all previews · approved only) · **notes for improvement** (saved with the page, plane, test code and version) · database sign-in, sync, check · show errors · **version log** at the very bottom. On a plane's page: test versions (A/B per group, with the test code), copies, flight notes (the test code is put in front of each note).
 
-## Back alignment (five readings, skew)
+## Back alignment (vernier, shift and skew)
 
-The 🧪 test is two pages. Front: a scale at each of five spots (middle, four corners), 0.1 mm ticks over ±3 mm. Back: a fine ring and cross at each spot, moved by the saved alignment. Hold it to a window and read each back cross against its scale: right or down = +, left or up = −, to 0.1 mm. Type the ten numbers and **Save readings**.
+The 🧪 test is two pages. At each of five spots (middle and four corners) there is an across row and a down column, each a **vernier**: the front has marks 1.0 mm apart (numbered −8…8), the back has marks 0.9 mm apart (numbered −5…4). Hold the test to a window. For each row and column, find the back mark that lines up exactly with a front mark. Type the front number and the back number. The offset is front − 0.9 × back, in 0.1 mm steps (for example front 3, back 3 = +0.3 mm).
 
-The app fits one shift (across, down) and one turn (skew, in degrees) to the five readings, and adds them to what is saved. The log keeps each save. It reports what is left over after the correction: over 0.2 mm means one spot was misread, so read it again. Printing the test again should read 0.0 at all five spots.
+Twenty numbers, a live readout per spot, then **Save readings**. The app fits one shift (across, down) and one turn (skew) to the five spots and adds them to what is saved. It reports what is left over; over 0.2 mm means one pair was misread. Printing again should show **0 and 0** everywhere.
 
-The back's move is the same for long-edge and short-edge printers (the printer turns a short-edge back 180°, which mirrors it the same way). Derived from the geometry and checked in `tools/check_planes.js`, **not yet checked on paper**.
+Every 0.1 mm offset within ±3 mm has exactly one coinciding pair (checked). Marks are 0.2 mm lines at 1 mm or more, so they print. Labels are about 5 pt. The back numbers are drawn mirrored so they read correctly through the sheet.
 
-Precision limit: 0.1 mm is about the printer's dot pitch at 600 dpi. Expect the real result to be within a few tenths of a millimetre; the log shows what was saved.
-
-## Data
-
-Supabase **Family** project, app `paper-airplanes`, table `pa_flights` (flight, printed, flag). `supabase/001_flights.sql` + rolled-back test, **pasted by Jimmy**. Flights are kept on the device first and synced when signed in. Approval stays in `data/planes.js`, set by Claude.
+The back's move is the same for long-edge and short-edge printers (the printer turns a short-edge back 180°, which mirrors it the same way). Derived from the geometry and checked in `tools/check_planes.js`, **not yet checked on paper**. Errors beyond ±3 mm are outside the vernier: correct by hand first (the ruler on the sheet gives the rough size).
 
 ## Printing
 
