@@ -19,6 +19,9 @@
   .about { font-size: 17px; }
   table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 6px; border-bottom: 2px solid #eee4cc; }
   .flight label { display: flex; align-items: center; gap: 8px; font-weight: 700; min-height: 48px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+  .vrow { margin: 10px 0; } .vrow .row { flex-wrap: wrap; }
+  .code { font: 700 18px var(--ui); }
 </style>
 </head>
 <body>
@@ -28,17 +31,24 @@
 <main class="wrap">
   <div class="row noprint" style="margin-bottom:12px">
     <a class="btn" id="prev">◀</a>
-    <button class="btn go" id="print" type="button">🖨️ Print (100%, two-sided)</button>
+    <button class="btn go" id="print" type="button">🖨️ Print the planes (100%, two-sided)</button>
     <a class="btn" id="next">▶</a>
     <span class="chip" id="status"></span>
   </div>
+  <div class="noprint" style="margin-bottom:10px"><small>Copies</small><div class="tags" id="copies"></div></div>
   <p class="note about" id="about"></p>
+  <div class="panel noprint" id="versPanel" hidden>
+    <h3>🧪 Test versions</h3>
+    <p><small>Fly one version at a time. Each sheet prints its test code at the bottom. Tell Claude the code that flew best.</small></p>
+    <div id="vers"></div>
+    <p><span class="code" id="code"></span></p>
+  </div>
   <div class="two">
     <div><h3>Front (printed side up first)</h3><div class="paper" id="p1"></div></div>
     <div><h3>Back</h3><div class="paper" id="p2"></div></div>
   </div>
-  <div class="panel"><h3>The steps</h3><div class="steps" id="steps"></div><p><small id="report"></small></p></div>
-  <div class="panel"><h3>✈️ Flights</h3><div id="flights"></div><p><small>Add a flight in ⚙️ → Flight notes.</small></p></div>
+  <div class="panel noprint"><h3>The steps</h3><div class="steps" id="steps"></div><p><small id="report"></small></p></div>
+  <div class="panel noprint"><h3>✈️ Flights</h3><div id="flights"></div><p><small>Add a flight in ⚙️ → Flight notes.</small></p></div>
 </main>
 <script src="js/fold.js"></script>
 <script src="data/planes.js"></script>
@@ -47,7 +57,7 @@
 <script src="js/settings.js"></script>
 <script>
   (function () {
-    const { esc } = APP;
+    const { esc, store } = APP;
     const all = (window.PA_PLANES || []).filter(p => !p.retired), p = PA.find(APP.param("code")) || all[0], i = all.indexOf(p);
     const PATHS = ["straight", "curve left", "curve right", "loop", "dive", "stall"];
     APP.init(`<h3>✈️ Flight notes · ${esc(p.name)}</h3>
@@ -58,7 +68,7 @@
         <label>Easy to fold? <select class="field" id="fEase"><option value="3">😊 easy</option><option value="2">😐 OK</option><option value="1">😣 hard</option></select></label>
         <input class="field" id="fNote" placeholder="Notes: which step was tricky, what tweak helped" style="width:100%">
         <button class="btn mint" id="fSave" type="button">Save flight</button> <small id="fMsg"></small>
-      </div>` + PA.drawerHtml());
+      </div>` + PA.drawerHtml(), PA.foot());
     PA.wire();
     document.title = "Paper Airplanes #" + p.code;
     document.getElementById("sub").textContent = "#" + p.code + " · " + p.name;
@@ -66,13 +76,31 @@
     document.getElementById("next").href = "plane.html?code=" + all[(i + 1) % all.length].code;
     document.getElementById("status").textContent = p.approved ? "✅ approved" : "preview · not approved yet";
     document.getElementById("about").innerHTML = `<b>${esc(p.name)}</b> · ${esc(p.origin)}. ${esc(p.blurb.replace(/^Traditional design\. /, ""))}`;
-    document.getElementById("print").addEventListener("click", () => PA.printPlanes([p]));
+    const COPIES = [1, 2, 3, 5];
+    let copies = store.get("pa.copies", 1);
+    document.getElementById("print").addEventListener("click", () => PA.printPlanes([p], copies));
+    document.getElementById("copies").addEventListener("click", e => { const b = e.target.closest("[data-copies]"); if (!b) return; copies = +b.dataset.copies; store.set("pa.copies", copies); render(); });
+    document.getElementById("vers").addEventListener("click", e => {
+      const b = e.target.closest("[data-k]"); if (!b) return;
+      const g = +b.closest("[data-g]").dataset.g, bits = PA.bitsOf(p).split("");
+      bits[g] = b.dataset.k === "B" ? "1" : "0"; PA.setBits(p, bits.join("")); render();
+    });
     function render() {
+      const q = PA.planeFor(p);
+      document.getElementById("copies").innerHTML = COPIES.map(n => `<button class="tag${copies === n ? " on" : ""}" data-copies="${n}" type="button">${n}</button>`).join("");
+      const vp = document.getElementById("versPanel");
+      vp.hidden = !p.variants;
+      if (p.variants) {
+        const bits = PA.bitsOf(p);
+        document.getElementById("vers").innerHTML = p.variants.map((g, k) => `<div class="vrow"><b>${esc(g.title)}</b><div class="row seg" data-g="${k}">${["A", "B"].map(x => `<button class="tag${bits[k] === (x === "B" ? "1" : "0") ? " on" : ""}" data-k="${x}" type="button">${x} · ${esc(g[x].label)}</button>`).join("")}</div></div>`).join("");
+        document.getElementById("code").textContent = "Test code " + p.code + " · " + q.variantBits + " · #" + q.variantHash + "  (" + q.variantText + ")";
+      }
+      PA.setWhere({ item: p.code, label: p.name + (q.variantBits !== undefined ? " · test " + q.variantBits : "") });
       try {
-        const r = FOLD.sheet(p, PA.sheetOpts());
+        const r = FOLD.sheet(q, PA.sheetOpts());
         document.getElementById("p1").innerHTML = r.pages[0];
         document.getElementById("p2").innerHTML = r.pages[1];
-        document.getElementById("steps").innerHTML = p.steps.map((st, k) => `<div>${FOLD.picture(r.states[k], 150, st.line || null)}<br><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : esc(st.text || "")} <small>${st.type === "valley" ? "(in)" : st.type === "mountain" ? "(out)" : st.type === "crease" ? "(in, then open)" : ""}</small></div>`).join("") + `<div>${FOLD.picture(r.states[r.states.length - 1], 150)}<br>Done!</div>`;
+        document.getElementById("steps").innerHTML = q.steps.map((st, k) => `<div>${FOLD.picture(r.states[k], 150, st.line || null)}<br><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : esc(st.text || "")} <small>${st.type === "valley" ? "(in)" : st.type === "mountain" ? "(out)" : st.type === "crease" ? "(in, then open)" : ""}</small></div>`).join("") + `<div>${FOLD.picture(r.states[r.states.length - 1], 150)}<br>Done!</div>`;
         document.getElementById("report").textContent = r.report.length ? "Layout notes: " + r.report.join(" · ") : "";
       } catch (e) { APP.logError("sheet: " + e.message); }
       const fl = APP.reviews().filter(x => x.code === p.code && x.kind === "flight").sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
@@ -80,7 +108,8 @@
     }
     document.getElementById("fSave").addEventListener("click", () => {
       const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
-      APP.addReview({ code: p.code, kind: "flight", score: +document.getElementById("fEase").value, note: document.getElementById("fNote").value.trim(), extra: { distance_ft: num("fDist"), seconds: num("fSec"), path: document.getElementById("fPath").value } });
+      const q = PA.planeFor(p), tag = q.variantBits !== undefined ? `[test ${q.variantBits} #${q.variantHash}] ` : "";
+      APP.addReview({ code: p.code, kind: "flight", score: +document.getElementById("fEase").value, note: (tag + document.getElementById("fNote").value).trim(), extra: { distance_ft: num("fDist"), seconds: num("fSec"), path: document.getElementById("fPath").value } });
       document.getElementById("fMsg").textContent = "Saved ✓"; ["fDist", "fSec", "fNote"].forEach(id => { document.getElementById(id).value = ""; });
     });
     APP.onReviews = render; PA.onChange = render;

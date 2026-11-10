@@ -15,11 +15,23 @@
     { type: "valley", line: line([425, 0], [850, 425]), move: [845, 5], text: "Same on this side: corner to the middle line." }
   ];
   const middle = { type: "crease", line: v(425), move: [100, 600], text: "Fold in half the long way, press, then open it again." };
+  // Test versions for the Classic Dart: small changes to the folds that decide how it flies. "A" is the sheet as drawn,
+  // "B" the variant. Each group changes the steps named in its patch (printed step numbers). Fly one version at a time,
+  // then tell Claude the test code printed at the bottom of the sheet.
+  const D20 = [-Math.sin(Math.PI / 9), Math.cos(Math.PI / 9)];          // 20° from straight up (as drawn: 22.5°)
+  const DART_VARIANTS = [
+    { name: "nose", title: "Nose angle · steps 4 and 5", A: { label: "22.5°", patch: {} },
+      B: { label: "20°", patch: { 4: { line: from([425, 0], D20) }, 5: { line: from([425, 0], [-D20[0], D20[1]]) } } } },
+    { name: "top wing", title: "Top wing · step 7", A: { label: "as drawn", patch: {} },
+      B: { label: "a little narrower", patch: { 7: { line: line([445, 0], [535, 1100]) } } } },
+    { name: "bottom wing", title: "Bottom wing · step 9", A: { label: "as drawn", patch: {} },
+      B: { label: "a little narrower", patch: { 9: { line: line([405, 0], [315, 1100]) } } } }
+  ];
   root.PA_PLANES = [
     {
       code: "PA-01", name: "Classic Dart", level: 1, approved: false, outside: "back", pattern: "chevrons",
       origin: "traditional", blurb: "Traditional design. Nobody knows who folded the first dart: children have folded them for over a hundred years. The narrow body and pointy nose slice through the air, so it flies fast and straight.",
-      blurbAt: [480, 560], steps: [
+      blurbAt: [480, 560], variants: DART_VARIANTS, steps: [
         middle, ...corners,
         { type: "valley", line: from([425, 0], D), move: [20, 600], text: "Fold the slanted edge to the middle line." },
         { type: "valley", line: from([425, 0], [-D[0], D[1]]), move: [830, 600], text: "Same on this side." },

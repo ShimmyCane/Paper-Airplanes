@@ -6,12 +6,18 @@
    flat sheet, and prints it there: on the front if the paper's front is facing up at that moment, on the back
    (mirrored) if the back is. So following the printed lines in order folds the plane.
    Notation (origami standard): valley fold (fold toward you, "in") = dashed; mountain fold (fold away, "out") =
-   dash-dot; paper edge = solid; valley arrow has a filled head, mountain arrow a hollow head. */
+   dash-dot; paper edge = solid; valley arrow has a filled head, mountain arrow a hollow head.
+   Also here: the back alignment (five readings → shift and turn), and test versions (A/B groups for a plane). */
 (function (root) {
   "use strict";
   const W = 850, H = 1100, INSET = 24, MM = 100 / 25.4;
   const f = n => Math.round(n * 10) / 10;
+  const r2 = v => Math.round(v * 100) / 100;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  // the five alignment spots, in the order the readings are typed: middle, top left, top right, bottom left, bottom right
+  const SPOTS = [[425, 550], [170, 200], [680, 200], [170, 900], [680, 900]];
+  // a short code from a text (FNV-1a, 4 hex digits): the test code's "hash" so a changed sheet is noticed
+  const hash4 = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return (h >>> 0).toString(16).toUpperCase().padStart(8, "0").slice(0, 4); };
 
   // ---------- 2-D geometry: matrices [a, b, c, d, e, f]: x' = a·x + c·y + e, y' = b·x + d·y + f ----------
   const I = [1, 0, 0, 1, 0, 0];
@@ -99,6 +105,27 @@
   const DASH = { valley: "16 10", mountain: "18 7 3 7", crease: "16 10" };
   const mat = M => `matrix(${M.map(v => f(v * 1000) / 1000).join(" ")})`;
 
+  // The back's move, so that seen from the front it shifts by −align (mm) and turns by −rot degrees about the sheet's middle.
+  // A long-edge flip mirrors the back left to right. A short-edge print is turned 180° by the printer, which mirrors it the
+  // same way (x only), so one rule covers both. As an SVG matrix: x' = a·x + c·y + e, y' = b·x + d·y + f.
+  function alignMatrix(al = {}) {
+    const psi = -(al.rot || 0) * Math.PI / 180, c = Math.cos(psi), s = Math.sin(psi), Cx = W / 2, Cy = H / 2;
+    const Dx = -(al.x || 0) * MM, Dy = -(al.y || 0) * MM;
+    return [c, -s, s, c, Cx * (1 - c) - s * Cy - Dx, Cy * (1 - c) + s * Cx + Dy];
+  }
+  // From five readings (mm, seen from the front, in SPOTS order) find the shift and the turn that explain them.
+  // A turn by φ moves a spot at v (from the middle) by φ·(−v.y, v.x). Returns { x, y, rot (degrees), residual (mm) }.
+  function fitAlign(R) {
+    const C = [W / 2, H / 2], P = SPOTS.map(([x, y]) => [(x - C[0]) / MM, (y - C[1]) / MM]), J = P.map(([x, y]) => [-y, x]);
+    const n = R.length, mx = R.reduce((s, r) => s + r.x, 0) / n, my = R.reduce((s, r) => s + r.y, 0) / n;
+    let num = 0, den = 0;
+    R.forEach((r, i) => { num += J[i][0] * (r.x - mx) + J[i][1] * (r.y - my); den += J[i][0] ** 2 + J[i][1] ** 2; });
+    const phi = den ? num / den : 0;
+    const tx = R.reduce((s, r, i) => s + r.x - phi * J[i][0], 0) / n, ty = R.reduce((s, r, i) => s + r.y - phi * J[i][1], 0) / n;
+    const residual = Math.max(...R.map((r, i) => Math.hypot(r.x - tx - phi * J[i][0], r.y - ty - phi * J[i][1])));
+    return { x: r2(tx), y: r2(ty), rot: r2(phi * 180 / Math.PI), residual: r2(residual) };
+  }
+
   // A label: number, "in"/"out", and (verbose) a sentence, drawn in the folded view so it reads upright at that step.
   function labelBox(st, n, mode) {
     const words = mode === "verbose" ? wrap(st.text || "", 20) : [];
@@ -177,7 +204,7 @@
     return null;
   }
 
-  // Build both printed pages for a plane. opts: { mode: verbose|short|minimal, deco: bold|faint|none, offset, flip }
+  // Build both printed pages for a plane. opts: { mode: verbose|short|minimal, deco: bold|faint|none, align: {x, y, rot}, flip }
   function sheet(plane, opts = {}) {
     const mode = opts.mode || "verbose", deco = opts.deco || "bold";
     const states = run(plane), out = { front: [], back: [] }, report = [];
@@ -239,7 +266,22 @@
     const blurbSpot = findBlurb(plane, used, lines, arrows);
     const fixed = placeFixed(plane, used, lines, arrows);
     if (!blurbSpot) report.push("the about box has no clear spot");
+    fixed.fell.forEach(name => report.push(`the ${name} has no clear spot (it overlaps)`));
     return { pages: frame(plane, out, opts, deco, blurbSpot, fixed), report, states };
+  }
+
+  // ---------- test versions: a plane may have groups of A / B steps (see data/planes.js) ----------
+  // bits "010" = A, B, A for the groups in order. The printed sheet gets a test code: the bits, a short hash of the
+  // steps as they were folded, and what each group was set to.
+  function withVariant(plane, bits) {
+    if (!plane.variants) return plane;
+    const groups = plane.variants, b = groups.map((g, i) => (bits && bits[i] === "1" ? "1" : "0")).join("");
+    const pick = b.split("").map(c => (c === "1" ? "B" : "A"));
+    const steps = plane.steps.map(s => Object.assign({}, s));
+    groups.forEach((g, i) => { const patch = g[pick[i]].patch || {}; Object.keys(patch).forEach(n => { steps[+n - 1] = Object.assign({}, steps[+n - 1], patch[n]); }); });
+    const id = hash4(JSON.stringify(steps.map(s => [s.type, s.line || null, s.move || null, s.select || null])));
+    const text = groups.map((g, i) => `${g.name} ${pick[i]}`).join(" · ");
+    return Object.assign({}, plane, { steps, variantBits: b, variantHash: id, variantText: text });
   }
 
   // ---------- page frames: title, scale check, attribution, decoration on the outside ----------
@@ -256,20 +298,21 @@
     clouds: `<pattern id="dp" width="140" height="100" patternUnits="userSpaceOnUse"><path d="M20 60 Q20 40 40 42 Q48 22 70 30 Q90 20 98 42 Q120 42 118 60 Z" fill="none" stroke="#555" stroke-width="3"/></pattern>`,
     chevrons: `<pattern id="dp" width="80" height="50" patternUnits="userSpaceOnUse"><path d="M0 40 L40 10 L80 40" fill="none" stroke="#555" stroke-width="6"/></pattern>`
   };
-    const titleOf = p => `Paper Airplanes #${p.code} · ${p.name}`;
-  const titleW = p => 24 + Math.max(`Paper Airplanes #${p.code}`.length * 9.2, p.name.length * 12.5);
-  // The title and the 2-inch scale check go on the front, clear of fold lines (searched from the bottom up).
+  const titleOf = p => `Paper Airplanes #${p.code} · ${p.name}`;
+  const titleW = p => 24 + Math.max(`Paper Airplanes #${p.code}`.length * 9.2, p.name.length * 12.5, p.variantText ? p.variantText.length * 6.2 : 0);
+  // The title, the 2-inch scale check and (test versions) the test code go on the front, clear of fold lines.
   function placeFixed(plane, used, lines, arrows) {
-    const tw = titleW(plane);
-    const spot = (w, h, pref) => {
+    const tw = titleW(plane), fell = [];
+    const spot = (w, h, pref, name) => {
       const c = [pref];
       for (let y = H - INSET - 12 - h; y > INSET + 10; y -= 20) for (let x = INSET + 12; x + w < W - INSET - 12; x += 20) c.push([x, y]);
       for (const [x, y] of c) { const R = { x0: x, y0: y, x1: x + w, y1: y + h }; if (R.x1 > W - INSET - 6 || R.y1 > H - INSET - 6) continue; if (used.front.some(U => overlap(U, R)) || arrows.front.some(U => overlap(U, R, 4)) || lines.front.some(([A, B]) => segHits(A, B, R))) continue; used.front.push(R); return [x, y]; }
-      used.front.push({ x0: pref[0], y0: pref[1], x1: pref[0] + w, y1: pref[1] + h }); return pref;
+      fell.push(name); used.front.push({ x0: pref[0], y0: pref[1], x1: pref[0] + w, y1: pref[1] + h }); return pref;
     };
-    const t = spot(tw, 58, plane.titleAt || [40, 1000]);
-    const r = spot(236, 62, plane.rulerAt || [590, 1000]);
-    return { title: [t[0], t[1] + 30], ruler: [r[0] + 8, r[1] + 30] };
+    const th = plane.variantBits == null ? 58 : 74;      // a test-version sheet has two more lines: its test code and what it is set to
+    const t = spot(tw, th, plane.titleAt || [40, 1000], "title");
+    const r = spot(236, 62, plane.rulerAt || [590, 1000], "scale check");
+    return { title: t, titleH: th, ruler: [r[0] + 8, r[1] + 30], fell };
   }
   // The about box (name, where it comes from, a short story, "Pilot ___") goes on the outside of the plane.
   const blurbLines = (p, w) => wrap(p.blurb, Math.floor((w - 20) / 7.6)), blurbH = (p, w) => 66 + blurbLines(p, w).length * 18;
@@ -290,14 +333,16 @@
     return null;
   }
   function frame(plane, out, opts, deco, blurbSpot, fixed) {
-    const off = opts.offset || { x: 0, y: 0 }, flip = opts.flip || "long";
-    const tx = (flip === "long" ? off.x : -off.x) * MM, ty = (flip === "long" ? -off.y : off.y) * MM;
+    const G = mat(alignMatrix(opts.align));
     const clipDef = `<clipPath id="pr"><rect x="${INSET}" y="${INSET}" width="${W - 2 * INSET}" height="${H - 2 * INSET}"/></clipPath>`;
     const op = deco === "bold" ? 0.5 : deco === "faint" ? 0.2 : 0;
     const decoSvg = op ? `<rect x="${INSET}" y="${INSET}" width="${W - 2 * INSET}" height="${H - 2 * INSET}" fill="url(#dp)" opacity="${op}"/>` : "";
     const name = titleOf(plane);
-    const t = fixed.title;
-    const title = `<rect x="${t[0]}" y="${t[1] - 30}" width="${f(titleW(plane))}" height="58" rx="8" fill="#fff" stroke="#111" stroke-width="1.5"/><text x="${t[0] + 10}" y="${t[1] - 10}" font-family="Arial, sans-serif" font-size="16" fill="#111">Paper Airplanes #${esc(plane.code)}</text><text x="${t[0] + 10}" y="${t[1] + 16}" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111">${esc(plane.name)}</text>`;
+    const t = fixed.title, [tx, ty] = t;
+    const v = plane.variantBits != null;               // compact lines when there is a test code (the front is crowded)
+    const code = !v ? "" : `<text x="${tx + 10}" y="${ty + 54}" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111">Test code ${esc(plane.code)} · ${plane.variantBits} · #${plane.variantHash}</text>
+      <text x="${tx + 10}" y="${ty + 68}" font-family="Arial, sans-serif" font-size="10" fill="#111">${esc(plane.variantText)}</text>`;
+    const title = `<rect x="${tx}" y="${ty}" width="${f(titleW(plane))}" height="${fixed.titleH}" rx="8" fill="#fff" stroke="#111" stroke-width="1.5"/><text x="${tx + 10}" y="${ty + (v ? 17 : 20)}" font-family="Arial, sans-serif" font-size="${v ? 13 : 16}" fill="#111">Paper Airplanes #${esc(plane.code)}</text><text x="${tx + 10}" y="${ty + (v ? 37 : 42)}" font-family="Arial, sans-serif" font-size="${v ? 19 : 22}" font-weight="700" fill="#111">${esc(plane.name)}</text>${code}`;
     const r = fixed.ruler;
     const b = blurbSpot, lines = b ? blurbLines(plane, b[2]) : [];
     const blurb = !b ? "" : `<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${blurbH(plane, b[2])}" rx="10" fill="#fff" stroke="#111" stroke-width="1.5"/>
@@ -307,7 +352,7 @@
     const outside = plane.outside || "back";
     const page = (sideName, extra) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in">
 <defs>${clipDef}${PATTERNS[plane.pattern || "stripes"]}</defs><rect width="${W}" height="${H}" fill="#fff"/>
-<g${sideName === "back" ? ` transform="translate(${f(tx)} ${f(ty)})"` : ""}><g clip-path="url(#pr)">
+<g${sideName === "back" ? ` transform="${G}"` : ""}><g clip-path="url(#pr)">
 ${sideName === outside ? decoSvg : ""}
 ${extra}
 ${out[sideName].join("\n")}
@@ -319,20 +364,34 @@ ${out[sideName].join("\n")}
   }
 
   // ---------- the alignment test sheet: hold it up to a window ----------
+  // Five spots (middle, then the corners). Front: a scale at each: small tick 0.1 mm, middle tick 0.5 mm, long tick 1 mm (numbered).
+  // Back: a fine ring and cross at each spot, moved by the saved alignment. Read it against the scale: that is the reading.
   function testSheet(opts = {}) {
-    const off = opts.offset || { x: 0, y: 0 }, flip = opts.flip || "long";
-    const tx = (flip === "long" ? off.x : -off.x) * MM, ty = (flip === "long" ? -off.y : off.y) * MM;
-    const spots = [[425, 550], [170, 200], [680, 200], [170, 900], [680, 900]];
-    const scale = (x, y) => { let s = ""; for (let i = -10; i <= 10; i++) { const k = i % 5 ? 10 : 18; s += `<path d="M${f(x + i * MM)} ${y - k} V${y + k}" stroke="#111" stroke-width="${i ? 1.2 : 2}"/><path d="M${x - k} ${f(y + i * MM)} H${x + k}" stroke="#111" stroke-width="${i ? 1.2 : 2}"/>`; if (i && !(i % 5)) s += `<text x="${f(x + i * MM)}" y="${y - 22}" text-anchor="middle" font-family="Arial" font-size="11">${i > 0 ? "+" : ""}${i}</text><text x="${x + 24}" y="${f(y + i * MM + 4)}" font-family="Arial" font-size="11">${i > 0 ? "+" : ""}${i}</text>`; } return s + `<path d="M${f(x - 10 * MM)} ${y} H${f(x + 10 * MM)} M${x} ${f(y - 10 * MM)} V${f(y + 10 * MM)}" stroke="#111" stroke-width="1"/>`; };
+    const al = opts.align || {}, G = mat(alignMatrix(al));
+    // ±3 mm in 0.1 mm steps. A 0.1 mm tick is 0.39 units apart, so the hairlines are thin (0.15 unit ≈ 0.1 pt) and the
+    // whole-mm numbers alternate above and below the rule, so neighbours do not touch.
+    const scale = (x, y) => {
+      let s = `<path d="M${f(x - 3 * MM)} ${y} H${f(x + 3 * MM)} M${x} ${f(y - 3 * MM)} V${f(y + 3 * MM)}" stroke="#111" stroke-width="0.4"/>`;
+      for (let i = -30; i <= 30; i++) {
+        const k = i % 10 ? (i % 5 ? 4 : 7) : 11, d = (i / 10) * MM, sw = i % 10 ? (i % 5 ? 0.15 : 0.3) : 0.5;
+        s += `<path d="M${f(x + d)} ${f(y - k)} V${f(y + k)}" stroke="#111" stroke-width="${sw}"/><path d="M${f(x - k)} ${f(y + d)} H${f(x + k)}" stroke="#111" stroke-width="${sw}"/>`;
+        if (i && !(i % 10)) {
+          const n = Math.abs(i) / 10, lab = (i > 0 ? "+" : "−") + n, up = n % 2 === 1;
+          s += `<text x="${f(x + d)}" y="${up ? y - 15 : y + 22}" text-anchor="middle" font-family="Arial" font-size="7">${lab}</text><text x="${up ? x + 15 : x - 15}" y="${f(y + d + 2.5)}" text-anchor="${up ? "start" : "end"}" font-family="Arial" font-size="7">${lab}</text>`;
+        }
+      }
+      return s;
+    };
     const front = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
-      <text x="425" y="80" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
-      <text x="425" y="116" text-anchor="middle" font-family="Arial" font-size="18">Print two-sided at 100%. Hold it up to a window. Look at the middle scale from THIS side.</text>
-      <text x="425" y="1010" text-anchor="middle" font-family="Arial" font-size="18">Find the thick cross from the back. Right of 0 = +X, below 0 = +Y (in mm, small lines = 1 mm).</text>
-      <text x="425" y="1038" text-anchor="middle" font-family="Arial" font-size="18">Type the two numbers in ⚙️ → Back alignment → Add reading, then print this again to check it reads 0, 0.</text>
-      ${spots.map(([x, y]) => scale(x, y)).join("")}${ruler(310, 960)}</svg>`;
+      <text x="425" y="70" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700">Paper Airplanes · printer alignment test (front)</text>
+      <text x="425" y="104" text-anchor="middle" font-family="Arial" font-size="16">Print two-sided at 100%. Hold it to a window and read the scales from THIS side.</text>
+      <text x="425" y="128" text-anchor="middle" font-family="Arial" font-size="16">Small tick = 0.1 mm · middle tick = 0.5 mm · long tick = 1 mm (numbered).</text>
+      <text x="425" y="1000" text-anchor="middle" font-family="Arial" font-size="16">Read the back ring and cross at each of the five spots, to 0.1 mm.</text>
+      <text x="425" y="1026" text-anchor="middle" font-family="Arial" font-size="16">Right or down = +, left or up = −. Type them in ⚙️ → Back alignment, then print again.</text>
+      ${SPOTS.map(([x, y]) => scale(x, y)).join("")}${ruler(310, 930)}</svg>`;
     const back = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
-      <text x="425" y="1060" text-anchor="middle" font-family="Arial" font-size="20" font-weight="700">Back · offset now X ${off.x} mm, Y ${off.y} mm · ${flip} edge</text>
-      <g transform="translate(${f(tx)} ${f(ty)})">${spots.map(([x, y]) => { const bx = W - x; return `<path d="M${bx - 26} ${y} H${bx + 26} M${bx} ${y - 26} V${y + 26}" stroke="#111" stroke-width="5"/><circle cx="${bx}" cy="${y}" r="9" fill="none" stroke="#111" stroke-width="3"/>`; }).join("")}</g></svg>`;
+      <text x="425" y="1060" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Back · saved: across ${al.x || 0} mm · down ${al.y || 0} mm · turn ${al.rot || 0}°</text>
+      <g transform="${G}">${SPOTS.map(([x, y]) => { const bx = W - x; return `<circle cx="${bx}" cy="${y}" r="${f(1.5 * MM)}" fill="none" stroke="#111" stroke-width="0.8"/><path d="M${f(bx - 3 * MM)} ${y} H${f(bx + 3 * MM)} M${bx} ${f(y - 3 * MM)} V${f(y + 3 * MM)}" stroke="#111" stroke-width="0.8"/>`; }).join("")}</g></svg>`;
     return [front, back];
   }
 
@@ -343,5 +402,5 @@ ${out[sideName].join("\n")}
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${fcs.map(fc => `<path d="M${folded(fc).map(p => f(6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2) + " " + f(6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2)).join(" L")} Z" fill="${sideOf(fc) === "front" ? "#fff" : "#e8e1cf"}" stroke="#3b3248" stroke-width="1.6" stroke-linejoin="round"/>`).join("")}${hi ? (() => { const [p, q] = hi; const P = [6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2], Q = [6 + (q[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (q[1] - bb.y0) * s + (size - 12 - h * s) / 2]; return `<clipPath id="c${Math.round(P[0] * 7 + Q[1])}"><rect x="0" y="0" width="${size}" height="${size}"/></clipPath><path d="M${f(P[0])} ${f(P[1])} L${f(Q[0])} ${f(Q[1])}" stroke="#e0604a" stroke-width="2.5" stroke-dasharray="6 4"/>`; })() : ""}</svg>`;
   }
 
-  root.FOLD = { W, H, MM, INSET, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap };
+  root.FOLD = { W, H, MM, INSET, SPOTS, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, withVariant, hash4 };
 })(typeof window !== "undefined" ? window : globalThis);

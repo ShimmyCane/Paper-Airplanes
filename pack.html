@@ -29,7 +29,7 @@
 <script>
   (function () {
     const { esc, store } = APP;
-    APP.init(PA.drawerHtml());
+    APP.init(PA.drawerHtml(), PA.foot());
     PA.wire();
     const chosen = new Set(store.get("pa.pack", (window.PA_PLANES || []).map(p => p.code)));
     let copies = store.get("pa.copies", 1);
