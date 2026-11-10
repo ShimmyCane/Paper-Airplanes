@@ -49,6 +49,8 @@ a { color: var(--coral-dark); font-weight: 700; }
 .btn.on { background: var(--sun); }
 .btn.go { background: var(--coral); }
 .btn.mint { background: var(--mint); }
+.btn.planes { background: #ffb3ad; }      /* pastel red: print the planes */
+.btn.instr { background: var(--sky); }      /* pastel blue: print the steps / instructions */
 .btn:disabled { opacity: .45; cursor: default; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .wrap { padding: 0 18px 110px; max-width: 1280px; margin: 0 auto; }

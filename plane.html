@@ -13,9 +13,9 @@
   .two h3, .panel h3 { font: 24px var(--hand); margin: 0 0 6px; }
   .panel { background: #fff; border: var(--line); border-radius: 18px 18px 18px 6px; box-shadow: var(--pop); padding: 12px 14px; margin-top: 16px; }
   .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .steps div { border: 2.5px solid var(--ink); border-radius: 12px; padding: 6px; background: var(--paper); font-size: 14px; font-weight: 600; }
+  .steps div { border: 2.5px solid #5d8fc2; border-radius: 12px; padding: 6px; background: #e3f0fc; font-size: 14px; font-weight: 600; }
   .steps svg { width: 100%; height: auto; background: #fff; border-radius: 8px; }
-  .steps b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; margin-right: 4px; }
+  .steps b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #5d8fc2; color: #fff; margin-right: 4px; }
   .about { font-size: 17px; }
   table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 6px; border-bottom: 2px solid #eee4cc; }
   .flight label { display: flex; align-items: center; gap: 8px; font-weight: 700; min-height: 48px; }
@@ -31,7 +31,8 @@
 <main class="wrap">
   <div class="row noprint" style="margin-bottom:12px">
     <a class="btn" id="prev">◀</a>
-    <button class="btn go" id="print" type="button">🖨️ Print the planes (100%, two-sided)</button>
+    <button class="btn planes" id="print" type="button">🖨️ Print the planes (100%, two-sided)</button>
+    <button class="btn instr" id="printSteps" type="button">📄 Print the steps</button>
     <a class="btn" id="next">▶</a>
     <span class="chip" id="status"></span>
   </div>
@@ -79,6 +80,7 @@
     const COPIES = [1, 2, 3, 5];
     let copies = store.get("pa.copies", 1);
     document.getElementById("print").addEventListener("click", () => PA.printPlanes([p], copies));
+    document.getElementById("printSteps").addEventListener("click", () => PA.printSteps(p));
     document.getElementById("copies").addEventListener("click", e => { const b = e.target.closest("[data-copies]"); if (!b) return; copies = +b.dataset.copies; store.set("pa.copies", copies); render(); });
     document.getElementById("vers").addEventListener("click", e => {
       const b = e.target.closest("[data-k]"); if (!b) return;
