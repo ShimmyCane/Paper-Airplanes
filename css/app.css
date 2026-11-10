@@ -127,6 +127,16 @@ a { color: var(--coral-dark); font-weight: 700; }
   .tile { min-height: 140px; }
 }
 
+/* ---------- settings drawer tables and notes (⚙️) ---------- */
+.aln { width: 100%; border-collapse: collapse; font-size: 14px; }
+.aln th, .aln td { text-align: left; padding: 4px 2px; }
+.aln input { width: 100%; min-width: 0; padding: 6px; }
+.notes { list-style: none; padding: 0; margin: 8px 0 0; font-size: 14px; }
+.notes li { border-top: 2px solid #eee4cc; padding: 6px 0; }
+.small { font-size: 14px; }
+.vrow { margin: 10px 0; }
+.vrow .row { flex-wrap: wrap; }
+
 /* ---------- printing: only the sheets, one per Letter portrait page ---------- */
 .printOnly { display: none; }
 @page { size: letter portrait; margin: 0; }
@@ -135,6 +145,7 @@ a { color: var(--coral-dark); font-weight: 700; }
   .printOnly { display: block; }
   .rot180 svg { transform: rotate(180deg); }
   .noprint, .gear, .drawer, .errors, .top { display: none !important; }
+  body > *:not(#printArea) { display: none !important; }   /* print the sheets only: no steps, no menus */
   .wrap { padding: 0; max-width: none; }
   .print-sheet { width: 8.5in; height: 11in; margin: 0; padding: 0; page-break-after: always; break-after: page; overflow: hidden; }
   .print-sheet:last-child { page-break-after: auto; break-after: auto; }

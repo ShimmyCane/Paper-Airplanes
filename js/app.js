@@ -126,7 +126,7 @@
   }
 
   // ---------- ⚙️ drawer ----------
-  function init(extra = "") {
+  function init(extra = "", foot = "") {
     const here = location.pathname.split("/").pop() || "index.html";
     const links = C.links || [];
     document.body.insertAdjacentHTML("beforeend", `
@@ -150,6 +150,7 @@
         </div>
         <div id="dbResult"><small></small></div>
         <label><input type="checkbox" id="showErrors"> Show errors</label>
+        ${foot}
       </div>
       <pre class="errors noprint" id="errors" hidden></pre>`);
     const top = document.querySelector(".top");
