@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paper Airplanes Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<style>
+  details.p { margin: 14px 0; background: #fff; border: var(--line); border-radius: 18px 18px 18px 6px; box-shadow: var(--pop); }
+  details.p > summary { list-style: none; cursor: pointer; font: 26px var(--hand); min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 6px 16px; }
+  details.p > summary::-webkit-details-marker { display: none; }
+  details.p > summary::after { content: "▸"; margin-left: auto; }
+  details.p[open] > summary::after { content: "▾"; }
+  details.p[open] > summary { background: var(--sun); border-radius: 15px 15px 0 0; }
+  details.p > div { padding: 4px 18px 14px; }
+  .legend { display: grid; grid-template-columns: 140px 1fr; gap: 10px 14px; align-items: center; }
+  .legend svg { width: 140px; height: 40px; }
+  table { border-collapse: collapse; width: 100%; } td, th { text-align: left; padding: 6px 8px; border-bottom: 2px solid #eee4cc; }
+  svg.forces { width: 100%; max-width: 520px; height: auto; display: block; margin: 8px auto; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 class="title"><a href="../index.html">Paper Airplanes</a> <small>How planes fly, and how to read a fold sheet</small></h1>
+</header>
+<main class="wrap">
+  <details class="p" open>
+    <summary>💭 What I was thinking (round 1)</summary>
+    <div>
+      <p>The sheet <b>is</b> the plane. A small computer model folds the paper step by step, finds where each fold line crosses the top layer, and prints it exactly there, on whichever side is facing up at that moment. Follow the numbers and the lines are always in the right place, even after the paper has been folded and turned over.</p>
+      <p>That only works if the page prints at exactly 100% and the back lines up with the front, so every sheet has a 2-inch scale check and ⚙️ has an alignment test you hold up to a window.</p>
+      <p>The goal is careful folding in person: sharp creases, corners that meet exactly, both wings the same. A simulator can wait.</p>
+    </div>
+  </details>
+  <details class="p" open>
+    <summary>📐 Reading a fold sheet</summary>
+    <div class="legend">
+      <svg viewBox="0 0 140 40"><path d="M6 20 H134" stroke="#111" stroke-width="3.6" stroke-dasharray="16 10"/></svg><span><b>Valley fold</b> (fold <b>in</b>, toward you). The paper makes a V like a valley.</span>
+      <svg viewBox="0 0 140 40"><path d="M6 20 H134" stroke="#111" stroke-width="3.6" stroke-dasharray="18 7 3 7"/></svg><span><b>Mountain fold</b> (fold <b>out</b>, away from you). The paper makes a peak like a mountain.</span>
+      <svg viewBox="0 0 140 40"><path d="M6 20 H134" stroke="#111" stroke-width="3"/></svg><span><b>Edge</b> of the paper.</span>
+      <svg viewBox="0 0 140 40"><path d="M20 30 Q70 -6 116 26" fill="none" stroke="#111" stroke-width="3"/><path d="M116 26 l-18 -2 l8 -12 Z" fill="#111"/></svg><span>Arrow with a <b>filled</b> head: fold toward you.</span>
+      <svg viewBox="0 0 140 40"><path d="M20 30 Q70 -6 116 26" fill="none" stroke="#111" stroke-width="3"/><path d="M116 26 l-18 -2 l8 -12 Z" fill="#fff" stroke="#111" stroke-width="2.5"/></svg><span>Arrow with a <b>hollow</b> head: fold away from you (behind).</span>
+      <svg viewBox="0 0 140 40"><circle cx="20" cy="20" r="14" fill="#111"/><text x="20" y="27" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="700" font-size="18">3</text></svg><span>Step number. Do them in order.</span>
+    </div>
+    <div><p><small>This is the standard way origami books draw folds. It goes back to the Japanese paper folder Akira Yoshizawa (1911–2005), whose diagrams in the 1950s were later written up as a shared system by Samuel Randlett and Robert Harbin. Learn it once and you can read almost any folding book.</small></p></div>
+  </details>
+  <details class="p">
+    <summary>🌬️ The four forces</summary>
+    <div>
+      <svg class="forces" viewBox="0 0 520 260"><path d="M120 140 L380 120 L400 130 L380 140 L130 150 Z" fill="#fff" stroke="#111" stroke-width="3"/>
+        <path d="M260 120 V40" stroke="#111" stroke-width="4"/><path d="M260 32 l-10 16 h20 Z"/><text x="272" y="56" font-family="Arial" font-size="18">lift</text>
+        <path d="M260 150 V225" stroke="#111" stroke-width="4"/><path d="M260 234 l-10 -16 h20 Z"/><text x="272" y="222" font-family="Arial" font-size="18">weight</text>
+        <path d="M410 128 H490" stroke="#111" stroke-width="4"/><path d="M500 128 l-16 -10 v20 Z"/><text x="430" y="112" font-family="Arial" font-size="18">thrust (your throw)</text>
+        <path d="M110 145 H30" stroke="#111" stroke-width="4"/><path d="M20 145 l16 -10 v20 Z"/><text x="30" y="178" font-family="Arial" font-size="18">drag</text></svg>
+      <p><b>Lift</b> holds the plane up: the wing is tilted a little nose-up, so it pushes air down and the air pushes the wing up. Big wings push on more air, which is why the wide-wing glider floats.</p>
+      <p><b>Weight</b> pulls it down. <b>Thrust</b> is your throw; a paper plane has no engine, so after the throw it is always slowly coming down: gliding. <b>Drag</b> is the air rubbing and pushing back; sharp creases and a pointy nose make less of it.</p>
+    </div>
+  </details>
+  <details class="p">
+    <summary>⚖️ The balance point</summary>
+    <div>
+      <p>Balance the plane on one fingertip under the body. It should balance a little in front of the middle of the wings. That's why so many folds stack paper at the nose.</p>
+      <p>Too far back: the nose pops up, it stalls and drops. Too far forward: it dives. A paper clip on the nose moves the balance forward.</p>
+    </div>
+  </details>
+  <details class="p">
+    <summary>🔧 Fixing a flight (trim)</summary>
+    <div>
+      <table><tr><th>It…</th><th>Try</th></tr>
+        <tr><td>dives into the floor</td><td>bend the back edges of both wings up a little</td></tr>
+        <tr><td>climbs, stops, drops (stall)</td><td>bend the back edges down a little, or throw softer</td></tr>
+        <tr><td>turns left</td><td>bend the back edge of the left wing down a little, or the right one up</td></tr>
+        <tr><td>turns right</td><td>the opposite</td></tr>
+        <tr><td>wobbles and rolls</td><td>tilt both wings up into a slight V (that's called dihedral)</td></tr>
+        <tr><td>comes apart</td><td>press every crease again with a fingernail; check both wings match</td></tr>
+      </table>
+    </div>
+  </details>
+  <details class="p">
+    <summary>🕰️ A little history</summary>
+    <div>
+      <p><b>Leonardo da Vinci</b> (1452–1519) filled notebooks with drawings of flying machines and of birds' wings. None of his machines flew, but he studied how air moves.</p>
+      <p><b>George Cayley</b> (1773–1857), an English engineer, was the first to describe the forces on a wing: lift, weight, drag and thrust. In 1853 his glider carried a person across a small valley.</p>
+      <p><b>Wilbur and Orville Wright</b> tested gliders on the sand dunes at Kitty Hawk from 1900 to 1902, learning to balance and steer before they added an engine in 1903. Folding and throwing a paper glider is the same kind of testing.</p>
+    </div>
+  </details>
+  <details class="p">
+    <summary>📚 Topics we're tracking</summary>
+    <div><p>The full list is in <code>research/topics.md</code>: paper weight and grain, crease precision, and (much later, if wanted) a simple glide simulator.</p></div>
+  </details>
+</main>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>Paper Airplane</title>
+<style>
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+  .two h3, .panel h3 { font: 24px var(--hand); margin: 0 0 6px; }
+  .panel { background: #fff; border: var(--line); border-radius: 18px 18px 18px 6px; box-shadow: var(--pop); padding: 12px 14px; margin-top: 16px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .steps div { border: 2.5px solid var(--ink); border-radius: 12px; padding: 6px; background: var(--paper); font-size: 14px; font-weight: 600; }
+  .steps svg { width: 100%; height: auto; background: #fff; border-radius: 8px; }
+  .steps b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; margin-right: 4px; }
+  .about { font-size: 17px; }
+  table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 6px; border-bottom: 2px solid #eee4cc; }
+  .flight label { display: flex; align-items: center; gap: 8px; font-weight: 700; min-height: 48px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small id="sub">…</small></h1>
+</header>
+<main class="wrap">
+  <div class="row noprint" style="margin-bottom:12px">
+    <a class="btn" id="prev">◀</a>
+    <button class="btn go" id="print" type="button">🖨️ Print (100%, two-sided)</button>
+    <a class="btn" id="next">▶</a>
+    <span class="chip" id="status"></span>
+  </div>
+  <p class="note about" id="about"></p>
+  <div class="two">
+    <div><h3>Front (printed side up first)</h3><div class="paper" id="p1"></div></div>
+    <div><h3>Back</h3><div class="paper" id="p2"></div></div>
+  </div>
+  <div class="panel"><h3>The steps</h3><div class="steps" id="steps"></div><p><small id="report"></small></p></div>
+  <div class="panel"><h3>✈️ Flights</h3><div id="flights"></div><p><small>Add a flight in ⚙️ → Flight notes.</small></p></div>
+</main>
+<script src="js/fold.js"></script>
+<script src="data/planes.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/settings.js"></script>
+<script>
+  (function () {
+    const { esc } = APP;
+    const all = (window.PA_PLANES || []).filter(p => !p.retired), p = PA.find(APP.param("code")) || all[0], i = all.indexOf(p);
+    const PATHS = ["straight", "curve left", "curve right", "loop", "dive", "stall"];
+    APP.init(`<h3>✈️ Flight notes · ${esc(p.name)}</h3>
+      <div class="flight">
+        <label>Distance (feet) <input class="field" id="fDist" type="number" min="0" step="1" style="width:100px"></label>
+        <label>Time in the air (s) <input class="field" id="fSec" type="number" min="0" step="0.1" style="width:100px"></label>
+        <label>How it flew <select class="field" id="fPath">${PATHS.map(x => `<option>${x}</option>`).join("")}</select></label>
+        <label>Easy to fold? <select class="field" id="fEase"><option value="3">😊 easy</option><option value="2">😐 OK</option><option value="1">😣 hard</option></select></label>
+        <input class="field" id="fNote" placeholder="Notes: which step was tricky, what tweak helped" style="width:100%">
+        <button class="btn mint" id="fSave" type="button">Save flight</button> <small id="fMsg"></small>
+      </div>` + PA.drawerHtml());
+    PA.wire();
+    document.title = "Paper Airplanes #" + p.code;
+    document.getElementById("sub").textContent = "#" + p.code + " · " + p.name;
+    document.getElementById("prev").href = "plane.html?code=" + all[(i - 1 + all.length) % all.length].code;
+    document.getElementById("next").href = "plane.html?code=" + all[(i + 1) % all.length].code;
+    document.getElementById("status").textContent = p.approved ? "✅ approved" : "preview · not approved yet";
+    document.getElementById("about").innerHTML = `<b>${esc(p.name)}</b> · ${esc(p.origin)}. ${esc(p.blurb.replace(/^Traditional design\. /, ""))}`;
+    document.getElementById("print").addEventListener("click", () => PA.printPlanes([p]));
+    function render() {
+      try {
+        const r = FOLD.sheet(p, PA.sheetOpts());
+        document.getElementById("p1").innerHTML = r.pages[0];
+        document.getElementById("p2").innerHTML = r.pages[1];
+        document.getElementById("steps").innerHTML = p.steps.map((st, k) => `<div>${FOLD.picture(r.states[k], 150, st.line || null)}<br><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : esc(st.text || "")} <small>${st.type === "valley" ? "(in)" : st.type === "mountain" ? "(out)" : st.type === "crease" ? "(in, then open)" : ""}</small></div>`).join("") + `<div>${FOLD.picture(r.states[r.states.length - 1], 150)}<br>Done!</div>`;
+        document.getElementById("report").textContent = r.report.length ? "Layout notes: " + r.report.join(" · ") : "";
+      } catch (e) { APP.logError("sheet: " + e.message); }
+      const fl = APP.reviews().filter(x => x.code === p.code && x.kind === "flight").sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      document.getElementById("flights").innerHTML = fl.length ? `<table><tr><th>When</th><th>Feet</th><th>Seconds</th><th>Flew</th><th>Fold</th><th>Notes</th></tr>${fl.map(x => `<tr><td>${new Date(x.created_at).toLocaleDateString()}</td><td>${x.distance_ft ?? ""}</td><td>${x.seconds ?? ""}</td><td>${esc(x.path || "")}</td><td>${["", "😣", "😐", "😊"][x.score] || ""}</td><td>${esc(x.note)}</td></tr>`).join("")}</table>` : "<p>No flights yet.</p>";
+    }
+    document.getElementById("fSave").addEventListener("click", () => {
+      const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
+      APP.addReview({ code: p.code, kind: "flight", score: +document.getElementById("fEase").value, note: document.getElementById("fNote").value.trim(), extra: { distance_ft: num("fDist"), seconds: num("fSec"), path: document.getElementById("fPath").value } });
+      document.getElementById("fMsg").textContent = "Saved ✓"; ["fDist", "fSec", "fNote"].forEach(id => { document.getElementById(id).value = ""; });
+    });
+    APP.onReviews = render; PA.onChange = render;
+    render();
+  })();
+</script>
+</body>
+</html>
