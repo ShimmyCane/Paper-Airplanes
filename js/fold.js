@@ -424,6 +424,33 @@ ${out[sideName].join("\n")}
     return [front_, back_];
   }
 
+  // ---------- the instructions sheet: front = print and line up; back = fold and fly (kid-simple) ----------
+  function instructions() {
+    const page = (title, lines, nums) => {
+      const rows = lines.map((t, i) => `<text x="70" y="${f(190 + i * 62)}" font-family="Arial" font-size="24" fill="#111">${nums ? (i + 1) + ".  " : "•  "}${esc(t)}</text>`).join("");
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in"><rect width="${W}" height="${H}" fill="#fff"/>
+        <text x="425" y="100" text-anchor="middle" font-family="Arial" font-size="36" font-weight="700">${esc(title)}</text>
+        <line x1="70" y1="124" x2="780" y2="124" stroke="#111" stroke-width="2"/>${rows}
+        <text x="425" y="1040" text-anchor="middle" font-family="Arial" font-size="18" fill="#444">Paper Airplanes · instructions</text></svg>`;
+    };
+    const front = page("Print and line up", [
+      "Print at 100%: Actual size. Not “fit to page”.",
+      "Print on both sides. Pick your printer in ⚙️ first.",
+      "Print the alignment test (🧪) and hold it up to a window.",
+      "At each spot, find the matching back line.",
+      "Type the two numbers in ⚙️ and press Save.",
+      "Print again. One star and 0, 0 = lined up."
+    ], true);
+    const back = page("Fold and fly", [
+      "Fold on the lines. Follow the numbers in order.",
+      "Dashed line: fold toward you. Dash-dot line: fold away.",
+      "Pick a plane, then fold it from the sheet alone.",
+      "Open the wings flat. Throw gently, straight ahead.",
+      "Write how it flew in ✈️ Flight notes."
+    ], true);
+    return [front, back];
+  }
+
   // ---------- a small picture of the model after a step (for the screen) ----------
   function picture(state, size = 160, hi = null) {
     const bb = bbox(state), w = bb.x1 - bb.x0, h = bb.y1 - bb.y0, s = (size - 12) / Math.max(w, h);
@@ -431,5 +458,5 @@ ${out[sideName].join("\n")}
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${fcs.map(fc => `<path d="M${folded(fc).map(p => f(6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2) + " " + f(6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2)).join(" L")} Z" fill="${sideOf(fc) === "front" ? "#fff" : "#e8e1cf"}" stroke="#3b3248" stroke-width="1.6" stroke-linejoin="round"/>`).join("")}${hi ? (() => { const [p, q] = hi; const P = [6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2], Q = [6 + (q[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (q[1] - bb.y0) * s + (size - 12 - h * s) / 2]; return `<clipPath id="c${Math.round(P[0] * 7 + Q[1])}"><rect x="0" y="0" width="${size}" height="${size}"/></clipPath><path d="M${f(P[0])} ${f(P[1])} L${f(Q[0])} ${f(Q[1])}" stroke="#e0604a" stroke-width="2.5" stroke-dasharray="6 4"/>`; })() : ""}</svg>`;
   }
 
-  root.FOLD = { W, H, MM, INSET, SPOTS, SPOT_NAMES, STAR, VI, VJ, run, apply, sheet, testSheet, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
+  root.FOLD = { W, H, MM, INSET, SPOTS, SPOT_NAMES, STAR, VI, VJ, run, apply, sheet, testSheet, instructions, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -12,6 +12,7 @@
   const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
   const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.5.0 · Print instructions on one page or both sides, separately from the alignment test",
     "0.4.0 · Printer settings: Home, Office, Library or Other, each with its own alignment and flip; the alignment test is simpler, with numbered spots and a star",
     "0.3.0 · Back alignment from five readings at 0.1 mm, with the turn (skew) as well as the shift; a log of each save",
     "0.3.0 · Classic Dart test versions: nose (steps 4 and 5), top wing (7), bottom wing (9), with a test code at the bottom of the sheet",
@@ -71,6 +72,8 @@
       <h3>Back alignment</h3>
       <p><small><b>How to:</b> 1. Print 🧪 (two sides, 100%). 2. Hold it up to a window. 3. At each numbered spot, find the back line that matches a front line. 4. Type the two numbers. 5. Save. Print again: all 0 means it lines up.</small></p>
       <div class="row"><button class="btn" id="testPrint" type="button">🧪 Print alignment test</button></div>
+      <h3>Print instructions</h3>
+      <div class="row"><button class="btn" id="instrOne" type="button">📄 One page</button><button class="btn" id="instrTwo" type="button">📄📄 Both sides</button></div>
       <table class="aln"><tr><th>Spot</th><th>Across: front · back</th><th>Down: front · back</th><th>mm</th></tr>${rows}</table>
       <div class="row" style="margin-top:8px"><button class="btn mint" id="alignSave" type="button">Save readings</button><button class="btn" id="alignZero" type="button">Reset to 0</button></div>
       <p><small id="alignMsg"></small></p>
@@ -147,6 +150,8 @@
       g.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", x === b));
     }));
     const d = document.getElementById("decoSel"); if (d) d.addEventListener("change", () => set({ deco: d.value }));
+    const io = document.getElementById("instrOne"); if (io) io.addEventListener("click", () => { const o = sheetOpts(); root.APP.printPages([root.FOLD.instructions()[0]], { duplex: false, flip: o.flip }); });
+    const it = document.getElementById("instrTwo"); if (it) it.addEventListener("click", () => { const o = sheetOpts(); root.APP.printPages(root.FOLD.instructions(), { duplex: true, flip: o.flip }); });
     const tp = document.getElementById("testPrint"); if (tp) tp.addEventListener("click", () => { const o = sheetOpts(); root.APP.printPages(root.FOLD.testSheet({ align: o.align }), { duplex: true, flip: o.flip }); });
     const sv = document.getElementById("alignSave"); if (sv) sv.addEventListener("click", saveReadings);
 
