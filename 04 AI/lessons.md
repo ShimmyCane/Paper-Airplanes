@@ -33,3 +33,12 @@ Taken from `Index/04 AI/lessons_pool.md` §10 (settings), §Feedback, and §Prin
 - **A dense scale is not a precise scale.** Ticks 0.1 mm apart merge when printed. Use a vernier: printable marks (1.0 mm and 0.9 mm pitch) and a reading in 0.1 mm steps from the coinciding pair. Check the printed size of the smallest feature, not only the geometry. _(Paper Airplanes)_
 - **Check uniqueness, not only fit.** A vernier with ±5 marks had two coinciding pairs for ±0.5 mm. The checker now asserts exactly one pair per 0.1 mm step within the range.
 - **Find the mirror bug by drawing it.** Overlaying the mirrored back on the front exposed back labels anchored on the wrong side.
+
+## 2026-11-12 (round 3: Design board)
+
+- **Draw each fold in the view at that step.** Reading a flat crease pattern back into fold steps is hard; drawing on the model as it is now lets the engine fold it, so "the computer works out where every crease lands" comes for free.
+- **Prove a new tool against a known answer.** The Classic Dart drawn on the board printed the same fold lines as the hand-written plane. The one difference (a centre line splitting at a flap edge) was traced, not waved away.
+- **Snap to angles, not only points.** A corner-to-middle fold ends at a point that is neither a corner nor an edge middle; clicking the line to exact multiples of 7.5° made real taps give an exact 45°.
+- **Shared ids break when pages share a document.** Every sheet used `id="dp"` for its pattern, so printing several planes gave them all the first plane's pattern. Make SVG ids unique per item when pages print together.
+- **A check that fails may be the test.** "The model is bigger than its paper" was wrong: a slanted wing fold can poke past an edge, as real paper does. Test what must be true (it folded: smaller area), not what looks true.
+- **Keep the user's words in the convo**, then add a short "what Claude took from it" below, so a speech-to-text answer is not silently reworded.

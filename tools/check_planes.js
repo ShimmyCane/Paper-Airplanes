@@ -60,6 +60,38 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     if (n !== 1) { problems.push(`vernier: ${d} mm has ${n} coinciding pairs (need exactly 1)`); break; }
   }
 }
+// ---- other papers: a square and a custom sheet fold, keep every label on the paper, and get a cut line
+{
+  const v = (x, h) => [[x, -200], [x, h + 200]];
+  const sq = { code: "T-SQ", name: "Square test", origin: "test", blurb: "A test plane on a square sheet.", outside: "back", pattern: "stars", insidePattern: "clouds", paper: { w: 850, h: 850 }, steps: [
+    { type: "crease", line: v(425, 850), move: [100, 600], text: "Fold in half and open." },
+    { type: "valley", line: [[425, 0], [0, 425]], move: [5, 5], text: "Corner to the middle." },
+    { type: "valley", line: [[425, 0], [850, 425]], move: [845, 5], text: "Same on this side." },
+    { type: "valley", line: v(425, 850), move: [100, 600], text: "Fold in half." },
+    { type: "valley", line: [[445, 0], [525, 850]], move: [800, 700], select: { has: "s4" }, text: "Fold the wing." },
+    { type: "turn" },
+    { type: "valley", line: [[405, 0], [325, 850]], move: [50, 700], select: { not: "s4" }, text: "Fold this wing." },
+    { type: "open", text: "Open the wings." }] };
+  const cu = { code: "T-CU", name: "Custom test", origin: "test", blurb: "A test plane on a 6 by 9 inch sheet.", outside: "front", pattern: "stripes", paper: { w: 600, h: 900 }, steps: [
+    { type: "crease", line: v(300, 900), move: [100, 500], text: "Fold in half and open." },
+    { type: "valley", line: [[300, 0], [0, 300]], move: [5, 5], text: "Corner to the middle." },
+    { type: "valley", line: [[300, 0], [600, 300]], move: [595, 5], text: "Same on this side." },
+    { type: "valley", line: v(300, 900), move: [100, 500], text: "Fold in half." }] };
+  for (const p of [sq, cu]) for (const mode of MODES) {
+    const r = FOLD.sheet(p, { mode });
+    r.report.forEach(m => { if (BAD.test(m)) problems.push(`${p.code} ${mode}: ${m}`); });
+    if (r.pages.some(s => /NaN|undefined/.test(s))) problems.push(`${p.code} ${mode}: NaN or undefined on a page`);
+    if (!r.pages[0].includes("Cut along the line") && !r.pages[0].includes("✂ Cut")) problems.push(`${p.code}: no cut line`);
+    const b = FOLD.bbox(r.states[r.states.length - 1]);
+    if ((b.x1 - b.x0) * (b.y1 - b.y0) > 0.8 * p.paper.w * p.paper.h) problems.push(`${p.code}: the finished model is nearly the whole sheet: did it fold?`);   // a slanted wing may poke past an edge, so area, not size
+  }
+  if (!FOLD.sheet(sq, {}).pages[1].includes("dpi-T-SQ")) problems.push("T-SQ: no inside pattern");
+}
+// ---- several planes on one print: each keeps its own pattern (ids are unique per plane)
+{
+  const ids = PA_PLANES.map(p => (FOLD.sheet(p, {}).pages[0].match(/id="(dp-[^"]+)"/) || [])[1]);
+  if (new Set(ids).size !== ids.length) problems.push("pattern ids are not unique across planes: " + ids.join(", "));
+}
 FOLD.testSheet({ align: { x: 1.5, y: -2, rot: 0.4 } }).forEach((s, i) => { if (/NaN|undefined/.test(s)) problems.push("alignment test page " + (i + 1) + " has NaN"); });
 
 for (const p of PA_PLANES) {
