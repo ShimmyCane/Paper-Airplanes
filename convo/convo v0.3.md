@@ -20,10 +20,18 @@
 ## Questions for you
 
 1. **Design: sheet sizes.** Which sizes first: square, letter, and one custom size? Should a custom sheet print on a regular sheet of paper, or only on a sheet you cut yourself?
-   > 
+   > One design sheets start with letter size. But they really should be three options.
 2. **Design: how a drawn line becomes a fold.** When you draw a line between two dots, do you also choose the fold type there (mountain or valley), or do you draw it and set the type afterwards for each step?
-   > 
+   > Yes, I would select the folder type from a drop-down or a toggle
 3. **Photo booth QR.** The QR can hold the whole plan inside its link (no database needed; it works offline and from a printout), or it can point to a saved record (needs the family database). I suggest the link holds the plan. OK?
-   > 
+   > Too OK agreed
+   > The QR code should open up to the linked page which hold onto everything needed to build the airplane
 4. **Fly: who is it for?** Only you and the kids, or should the Fly pages also be readable by other families later? (This decides how much words and pictures we use.)
-   > 
+   > It should be just me and the kids, but we can expand in the future in general as little text as possible
+
+## What Claude took from the answers (2026-11-12)
+
+1. Three sheets: **Letter** (default), **Square** and **Custom**. Square and custom print on letter paper with a cut line.
+2. The fold type is a **toggle** on the board (valley · mountain · fold & open), picked before adding the fold.
+3. The link holds the whole plane. The QR (photo booth, later) opens **share.html**, which shows everything needed to build it and prints the sheet and the instructions.
+4. Fly is for you and the kids: pictures first, **as little text as possible**.

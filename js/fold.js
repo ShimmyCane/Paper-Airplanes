@@ -53,7 +53,14 @@
   const through = (A, B) => { const d = [B[0] - A[0], B[1] - A[1]]; return [[A[0] - d[0] * 8, A[1] - d[1] * 8], [A[0] + d[0] * 8, A[1] + d[1] * 8]]; };
 
   // ---------- the model ----------
-  const start = () => ({ facets: [{ poly: [[0, 0], [W, 0], [W, H], [0, H]], T: I.slice(), z: 0, tags: [] }] });
+  // The paper. A plane may give its own size: plane.paper = { w, h } in 1/100 inch (letter 850 × 1100 by default). A smaller
+  // paper is printed in the top-left corner of a letter page, with a cut line along its edges that are not the page's edges.
+  const paperOf = plane => (plane && plane.paper) || { w: W, h: H };
+  let PAP = { w: W, h: H };                             // the paper of the sheet being drawn (set by sheet())
+  // where the paper lies on each printed page: the back is mirrored about the page's middle, as a two-sided print lands
+  const region = sd => { const w = Math.min(PAP.w, W), h = Math.min(PAP.h, H); return sd === "front" ? { x0: 0, x1: w, y0: 0, y1: h } : { x0: W - w, x1: W, y0: 0, y1: h }; };
+  const inRegion = (R, sd, m = INSET + 6) => { const g = region(sd); return R.x0 >= g.x0 + m && R.x1 <= g.x1 - m && R.y0 >= g.y0 + m && R.y1 <= g.y1 - m; };
+  const start = (pp = { w: W, h: H }) => ({ facets: [{ poly: [[0, 0], [pp.w, 0], [pp.w, pp.h], [0, pp.h]], T: I.slice(), z: 0, tags: [] }] });
   const folded = fc => fc.poly.map(p => ap(fc.T, p));
   const chosen = (fc, sel) => !sel || (sel.has ? fc.tags.includes(sel.has) : sel.not ? !fc.tags.includes(sel.not) : true);
   function bbox(state) { const pts = state.facets.flatMap(folded); return { x0: Math.min(...pts.map(p => p[0])), y0: Math.min(...pts.map(p => p[1])), x1: Math.max(...pts.map(p => p[0])), y1: Math.max(...pts.map(p => p[1])) }; }
@@ -81,7 +88,7 @@
     return { facets: keep.concat(moved) };
   }
   // every state: states[0] = flat sheet, states[i] = after step i
-  function run(plane) { const out = [start()]; plane.steps.forEach((st, i) => { if (!st.id) st.id = "s" + (i + 1); out.push(apply(out[out.length - 1], st)); }); return out; }
+  function run(plane) { const out = [start(paperOf(plane))]; plane.steps.forEach((st, i) => { if (!st.id) st.id = "s" + (i + 1); out.push(apply(out[out.length - 1], st)); }); return out; }
 
   // Where a line crosses the top visible layer: pieces [{fc, a, b}] in folded coordinates.
   function visible(state, p, q, sel) {
@@ -171,7 +178,7 @@
       const pts = [[x, y], [x + w, y], [x, y + h], [x + w, y + h], [x + w / 2, y + h / 2], [x + w / 2, y], [x + w / 2, y + h]];
       if (!pts.every(p => top(state, p) === fc)) return false;
       const M = toPage(fc), R = boxOnPage(M, x, y, w, h), sd = sideOf(fc);
-      if (R.x0 < INSET + 6 || R.x1 > W - INSET - 6 || R.y0 < INSET + 6 || R.y1 > H - INSET - 6) return false;
+      if (!inRegion(R, sd)) return false;
       if (used[sd].some(U => overlap(U, R)) || arrows[sd].some(U => overlap(U, R, 0))) return false;
       if (lines[sd].some(([A, B]) => segHits(A, B, R))) return false;
       return R;
@@ -208,6 +215,7 @@
 
   // Build both printed pages for a plane. opts: { mode: verbose|short|minimal, deco: bold|faint|none, align: {x, y, rot}, flip }
   function sheet(plane, opts = {}) {
+    PAP = paperOf(plane);
     const mode = opts.mode || "verbose", deco = opts.deco || "bold";
     const states = run(plane), out = { front: [], back: [] }, report = [];
     const lines = { front: [], back: [] }, used = { front: [], back: [] }, arrows = { front: [], back: [] };
@@ -305,15 +313,16 @@
   // The title, the 2-inch scale check and (test versions) the test code go on the front, clear of fold lines.
   function placeFixed(plane, used, lines, arrows) {
     const tw = titleW(plane), fell = [];
+    const g = region("front");
     const spot = (w, h, pref, name) => {
       const c = [pref];
-      for (let y = H - INSET - 12 - h; y > INSET + 10; y -= 20) for (let x = INSET + 12; x + w < W - INSET - 12; x += 20) c.push([x, y]);
-      for (const [x, y] of c) { const R = { x0: x, y0: y, x1: x + w, y1: y + h }; if (R.x1 > W - INSET - 6 || R.y1 > H - INSET - 6) continue; if (used.front.some(U => overlap(U, R)) || arrows.front.some(U => overlap(U, R, 4)) || lines.front.some(([A, B]) => segHits(A, B, R))) continue; used.front.push(R); return [x, y]; }
+      for (let y = g.y1 - INSET - 12 - h; y > g.y0 + INSET + 10; y -= 20) for (let x = g.x0 + INSET + 12; x + w < g.x1 - INSET - 12; x += 20) c.push([x, y]);
+      for (const [x, y] of c) { const R = { x0: x, y0: y, x1: x + w, y1: y + h }; if (!inRegion(R, "front")) continue; if (used.front.some(U => overlap(U, R)) || arrows.front.some(U => overlap(U, R, 4)) || lines.front.some(([A, B]) => segHits(A, B, R))) continue; used.front.push(R); return [x, y]; }
       fell.push(name); used.front.push({ x0: pref[0], y0: pref[1], x1: pref[0] + w, y1: pref[1] + h }); return pref;
     };
     const th = plane.variantBits == null ? 58 : 74;      // a test-version sheet has two more lines: its test code and what it is set to
-    const t = spot(tw, th, plane.titleAt || [40, 1000], "title");
-    const r = spot(236, 62, plane.rulerAt || [590, 1000], "scale check");
+    const t = spot(tw, th, plane.titleAt || [g.x0 + 40, g.y1 - 100], "title");
+    const r = spot(236, 62, plane.rulerAt || [g.x1 - 260, g.y1 - 100], "scale check");
     return { title: t, titleH: th, ruler: [r[0] + 8, r[1] + 30], fell };
   }
   // The about box (name, where it comes from, a short story, "Pilot ___") goes on the outside of the plane.
@@ -321,11 +330,11 @@
   function findBlurb(plane, used, lines, arrows) {
     const sd = plane.outside || "back";
     for (const w of [262, 214, 180]) {
-      const h = blurbH(plane, w), cands = [plane.blurbAt || [60, 60]];
-      for (let y = INSET + 10; y + h < H - INSET - 10; y += 20) for (let x = INSET + 10; x + w < W - INSET - 10; x += 20) cands.push([x, y]);
+      const g = region(sd), h = blurbH(plane, w), cands = [plane.blurbAt || [g.x0 + 60, g.y0 + 60]];
+      for (let y = g.y0 + INSET + 10; y + h < g.y1 - INSET - 10; y += 20) for (let x = g.x0 + INSET + 10; x + w < g.x1 - INSET - 10; x += 20) cands.push([x, y]);
       for (const [x, y] of cands) {
         const R = { x0: x, y0: y, x1: x + w, y1: y + h };
-        if (R.x1 > W - INSET - 6 || R.y1 > H - INSET - 6) continue;
+        if (!inRegion(R, sd)) continue;
         if (used[sd].some(U => overlap(U, R)) || arrows[sd].some(U => overlap(U, R, 4))) continue;
         if (lines[sd].some(([A, B]) => segHits(A, B, R))) continue;
         used[sd].push(R);
@@ -336,9 +345,21 @@
   }
   function frame(plane, out, opts, deco, blurbSpot, fixed) {
     const G = mat(alignMatrix(opts.align));
-    const clipDef = `<clipPath id="pr"><rect x="${INSET}" y="${INSET}" width="${W - 2 * INSET}" height="${H - 2 * INSET}"/></clipPath>`;
+    const uid = String(plane.code || "p").replace(/[^A-Za-z0-9_-]/g, "");
+    const box = sd => { const g = region(sd); return `x="${g.x0 + INSET}" y="${g.y0 + INSET}" width="${g.x1 - g.x0 - 2 * INSET}" height="${g.y1 - g.y0 - 2 * INSET}"`; };
+    const clipId = sd => `pr-${uid}-${sd[0]}`, patId = `dp-${uid}`, inId = `dpi-${uid}`;
+    const pat = (key, id) => (PATTERNS[key] || "").replace('id="dp"', `id="${id}"`);
     const op = deco === "bold" ? 0.5 : deco === "faint" ? 0.2 : 0;
-    const decoSvg = op ? `<rect x="${INSET}" y="${INSET}" width="${W - 2 * INSET}" height="${H - 2 * INSET}" fill="url(#dp)" opacity="${op}"/>` : "";
+    const inside = plane.insidePattern && plane.insidePattern !== "none" && PATTERNS[plane.insidePattern] ? plane.insidePattern : null;
+    const decoSvg = sd => op ? `<rect ${box(sd)} fill="url(#${patId})" opacity="${op}"/>` : "";
+    const insideSvg = sd => op && inside ? `<rect ${box(sd)} fill="url(#${inId})" opacity="${f(op * 0.6)}"/>` : "";
+    // cut lines (front only): along the paper's right and bottom edges when they are not the page's edges
+    const cw = Math.min(PAP.w, W), ch = Math.min(PAP.h, H);
+    let cut = "";
+    if (cw < W) cut += `<path d="M${cw} 0 V${ch}" stroke="#777" stroke-width="1.2"/>`;
+    if (ch < H) cut += `<path d="M0 ${ch} H${cw}" stroke="#777" stroke-width="1.2"/>`;
+    if (cut) cut += ch < H - 50 ? `<text x="${f(cw / 2)}" y="${ch + 30}" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#555">✂ Cut along the line</text>`
+      : `<text x="${cw + 12}" y="${f(ch / 2)}" font-family="Arial, sans-serif" font-size="16" fill="#555">✂ Cut</text>`;
     const name = titleOf(plane);
     const t = fixed.title, [tx, ty] = t;
     const v = plane.variantBits != null;               // compact lines when there is a test code (the front is crowded)
@@ -353,9 +374,9 @@
       <text x="${b[0] + 10}" y="${b[1] + 52 + lines.length * 18}" font-family="Arial, sans-serif" font-size="14" fill="#111">Pilot __________  Flight # ___</text>`;
     const outside = plane.outside || "back";
     const page = (sideName, extra) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="8.5in" height="11in">
-<defs>${clipDef}${PATTERNS[plane.pattern || "stripes"]}</defs><rect width="${W}" height="${H}" fill="#fff"/>
-<g${sideName === "back" ? ` transform="${G}"` : ""}><g clip-path="url(#pr)">
-${sideName === outside ? decoSvg : ""}
+<defs><clipPath id="${clipId(sideName)}"><rect ${box(sideName)}/></clipPath>${pat(plane.pattern || "stripes", patId)}${inside ? pat(inside, inId) : ""}</defs><rect width="${W}" height="${H}" fill="#fff"/>
+${sideName === "front" ? cut : ""}<g${sideName === "back" ? ` transform="${G}"` : ""}><g clip-path="url(#${clipId(sideName)})">
+${sideName === outside ? decoSvg(sideName) : insideSvg(sideName)}
 ${extra}
 ${out[sideName].join("\n")}
 </g></g></svg>`;
@@ -458,5 +479,5 @@ ${out[sideName].join("\n")}
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${fcs.map(fc => `<path d="M${folded(fc).map(p => f(6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2) + " " + f(6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2)).join(" L")} Z" fill="${sideOf(fc) === "front" ? "#fff" : "#e8e1cf"}" stroke="#3b3248" stroke-width="1.6" stroke-linejoin="round"/>`).join("")}${hi ? (() => { const [p, q] = hi; const P = [6 + (p[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (p[1] - bb.y0) * s + (size - 12 - h * s) / 2], Q = [6 + (q[0] - bb.x0) * s + (size - 12 - w * s) / 2, 6 + (q[1] - bb.y0) * s + (size - 12 - h * s) / 2]; return `<clipPath id="c${Math.round(P[0] * 7 + Q[1])}"><rect x="0" y="0" width="${size}" height="${size}"/></clipPath><path d="M${f(P[0])} ${f(P[1])} L${f(Q[0])} ${f(Q[1])}" stroke="#e0604a" stroke-width="2.5" stroke-dasharray="6 4"/>`; })() : ""}</svg>`;
   }
 
-  root.FOLD = { W, H, MM, INSET, SPOTS, SPOT_NAMES, STAR, VI, VJ, run, apply, sheet, testSheet, instructions, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
+  root.FOLD = { W, H, MM, INSET, PATTERNS, paperOf, clip, side, area, folded, top, SPOTS, SPOT_NAMES, STAR, VI, VJ, run, apply, sheet, testSheet, instructions, picture, visible, bbox, bisector, through, reflect, ap, alignMatrix, fitAlign, vernier, withVariant, hash4 };
 })(typeof window !== "undefined" ? window : globalThis);

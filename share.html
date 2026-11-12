@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>Paper Airplanes · Shared plane</title>
+<style>
+  .wrap { padding-bottom: 110px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+  .two h3, .panel h3 { font: 24px "Patrick Hand", cursive; margin: 0 0 6px; }
+  .panel { background: #fff; border: var(--line); border-radius: 18px 18px 18px 6px; box-shadow: var(--pop); padding: 12px 14px; margin-top: 16px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .steps div { border: 2.5px solid #5d8fc2; border-radius: 12px; padding: 6px; background: #e3f0fc; font-size: 14px; font-weight: 600; }
+  .steps svg { width: 100%; height: auto; background: #fff; border-radius: 8px; }
+  .steps b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #5d8fc2; color: #fff; margin-right: 4px; }
+  .paper svg { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small id="sub">Shared plane</small></h1>
+</header>
+<main class="wrap">
+  <p class="note" id="about">Loading…</p>
+  <div class="row noprint" style="margin-bottom:12px">
+    <button class="btn planes" id="printPlane" type="button">🖨️ Print the plane (100%, two-sided)</button>
+    <button class="btn instr" id="printInstr" type="button">📄 Print instructions</button>
+    <button class="btn" id="copy" type="button">✏️ Copy into Design</button>
+  </div>
+  <div class="two">
+    <div><h3>Front</h3><div class="paper" id="p1"></div></div>
+    <div><h3>Back</h3><div class="paper" id="p2"></div></div>
+  </div>
+  <div class="panel"><h3>The steps</h3><div class="steps" id="steps"></div></div>
+</main>
+<script src="js/fold.js"></script>
+<script src="data/planes.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/codec.js"></script>
+<script>
+  (function () {
+    const { esc } = APP, $ = id => document.getElementById(id);
+    APP.init(PA.drawerHtml(), PA.foot()); PA.wire();
+    let d = null, plane = null;
+    try { const m = location.hash.match(/[#&]d=([^&]+)/); if (!m) throw new Error("This link has no plane in it."); d = PA_CODEC.decode(m[1]); plane = PA_CODEC.toPlane(d); }
+    catch (e) { $("about").textContent = "😕 " + e.message; document.querySelectorAll(".row.noprint .btn").forEach(b => { b.disabled = true; }); APP.logError("share: " + e.message); return; }
+    document.title = "Paper Airplanes · " + plane.name;
+    $("sub").textContent = "#" + plane.code + " · " + plane.name;
+    $("about").innerHTML = `<b>${esc(plane.name)}</b> · ${esc(plane.origin)}. ${esc(plane.blurb)}`;
+    PA.setWhere({ item: plane.code, label: plane.name + " (shared)" });
+    function render() {
+      const r = FOLD.sheet(plane, PA.sheetOpts());
+      $("p1").innerHTML = r.pages[0]; $("p2").innerHTML = r.pages[1];
+      $("steps").innerHTML = plane.steps.map((st, k) => `<div>${FOLD.picture(r.states[k], 150, st.line || null)}<br><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : esc(st.text || "")}</div>`).join("") + `<div>${FOLD.picture(r.states[r.states.length - 1], 150)}<br>Done!</div>`;
+    }
+    $("printPlane").addEventListener("click", () => PA.printPlanes([plane], 1));
+    $("printInstr").addEventListener("click", () => PA.printSteps(plane));
+    $("copy").addEventListener("click", () => { APP.store.set("pa.designDraft", { d, id: null }); location.href = "design.html"; });
+    PA.onChange = render;
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -14,3 +14,5 @@
 **Not verified:** no real fold, print or flight yet. The alignment is derived from the geometry and round-tripped in code; the short-edge sign was corrected from the earlier code by that derivation and needs a real test. 0.1 mm is about the printer's limit.
 
 **Database:** `pa_flights` is live in the Family project (verified 2026-11-10). Flights carry the test code in their note text (no new column).
+
+**Round 3 (2026-11-12, ground up):** V1 frozen in `v1/` (linked from ⚙️). New home: Build (`build.html`, the V1 cards), Fly and Photo booth (placeholders), **Design** (built). The Design board draws each fold in the view at that step, so the engine folds it and the sheet is automatic. Paper is a plane property (`paper: {w, h}`); square and custom print on letter with a cut line. `share.html#d=…` holds the whole design in the link (no database). Checker covers square and custom sheets and unique pattern ids. Answers to convo v0.3 are recorded there.

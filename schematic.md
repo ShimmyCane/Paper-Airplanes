@@ -2,6 +2,18 @@
 
 **Round 3 (ground up), 2026-11-12:** the first app is archived as **V1** (`v1/`, linked from ⚙️). The new home has four modules: **Build** (`build.html`, today's model cards), **Fly** (`fly.html`, placeholder), **Design** (`design.html`, placeholder), **Photo booth** (`photo.html`, placeholder). Plans and open questions: `convo/convo v0.3.md`. The sections below describe V1 unless marked.
 
+### Design (built, round 3)
+
+- **Board** (`design.html`, `js/board.js`): the paper as it looks now. Tap two points to draw the next fold; dots snap to corners and edge middles, and the line clicks to exact angles every 7.5° (45° corner folds, the 22.5° dart nose). Toggles: valley · mountain · fold & open; all layers · top flap (the paper that last moved together, on top); other side moves (the smaller side moves by default; it shows pink). Buttons: add fold, turn over, add a note, undo, clear line.
+- **Steps** list with pictures; the words are editable and print on the sheet.
+- **Paper**: Letter · Square · Custom (inches). Smaller sheets print on letter with a cut line.
+- **Name and look**: name, designed by (first name), short story, outside side, outside and inside patterns.
+- **Sheet**: live front/back preview, problems listed, 🖨️ print the plane (red), 📄 print instructions (blue), 💾 save on this device, 🔗 share link.
+- **Share** (`share.html#d=…`, `js/codec.js`): the link holds the whole design (about 500 characters for a dart). The page shows the story, the sheet, the steps, both print buttons and "copy into Design". No database.
+- **Engine** (`js/fold.js`): a plane may give `paper: { w, h }`; labels, title and blurb stay on the paper; `insidePattern`; clip and pattern ids are unique per plane (several planes on one print keep their own patterns: this was a V1 bug).
+- **Verified:** the Classic Dart drawn on the board prints the same fold lines as the hand-written one (within 0.8 hundredths of an inch; one centre line splits at a flap edge differently, the same crease). Real mouse and touch taps give an exact 45° fold.
+- **Not yet:** folds defined as "edge onto a line" (the board uses two dots); random variations; the board does not check that a fold is physically possible beyond "it moves paper".
+
 **Track:** A. Family play. The printed sheet is the product; the pages pick, print and record flights.
 **Status:** Round 3 (v0.3.0) — seven planes as previews (none approved); Classic Dart has test versions. Not folded or flown yet.
 **Platform:** plain HTML/CSS/JS, no build, GitHub Pages (inside Felix-Maze). Letter portrait, printed at 100%, two-sided.

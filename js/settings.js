@@ -12,6 +12,8 @@
   const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
   const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.8.0 · Design: draw your own plane (letter, square or custom paper), print it and its instructions, save it, share a link",
+    "0.7.0 · New home (Build, Fly, Design, Photo booth); the first app is kept as V1 (link above)",
     "0.6.0 · Print the steps as shown on the plane page (blue); the planes button is red; both sit side by side",
     "0.5.0 · Print instructions on one page or both sides, separately from the alignment test",
     "0.4.0 · Printer settings: Home, Office, Library or Other, each with its own alignment and flip; the alignment test is simpler, with numbered spots and a star",

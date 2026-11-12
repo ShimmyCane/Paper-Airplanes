@@ -25,6 +25,19 @@
 - [x] ⚙️: notes for improvement (saved with page, plane, test code, version); version log at the bottom
 - [x] Checker: every version combination, alignment geometry, five-reading round trip, fallback placements reported
 
+## Done (ground up, v0.7–0.8)
+
+- [x] V1 archived in `v1/`, linked from ⚙️
+- [x] Home with Build · Fly · Design · Photo booth
+- [x] Design board: draw folds, letter / square / custom paper, steps, name and look, print the plane and its instructions, save, share link
+- [x] Share page (`share.html#d=…`): everything needed to build the plane, no database
+
+## Now (ground up)
+
+- [ ] Draw a first plane of your own on the board, print it, fold it, and tell Claude what was hard
+- [ ] Fly: pictures first, little text (for you and the kids)
+- [ ] Photo booth: photo, a stamped line, and a QR code that opens the share page
+
 ## Next
 
 - [ ] Approve planes from the flight notes; fix any confusing step

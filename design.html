@@ -8,36 +8,118 @@
 <link rel="stylesheet" href="css/app.css">
 <title>Paper Airplanes · Design</title>
 <style>
-  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 8px 0 18px; }
-  .mode { display: flex; flex-direction: column; gap: 6px; min-height: 150px; padding: 18px; color: var(--ink); text-decoration: none;
-    border: var(--line); border-radius: 26px 26px 26px 8px; box-shadow: 0 6px 0 var(--ink); }
-  .mode:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
-  .mode .big { font-size: 40px; line-height: 1; }
-  .mode b { font: 700 26px var(--hand, "Patrick Hand", cursive); }
-  .mode small { font-size: 15px; }
-  .m-build { background: var(--mint); } .m-fly { background: var(--sky); } .m-design { background: var(--peach); } .m-photo { background: var(--sun); }
-  .soon { border: var(--line); border-radius: 18px; background: #fff; padding: 14px 16px; box-shadow: var(--pop); margin-top: 12px; }
-  .soon h3 { font: 24px "Patrick Hand", cursive; margin: 0 0 6px; }
-  .back { display: inline-block; margin-bottom: 10px; }
-  .wrap { padding-bottom: 110px; }   /* room for the ⚙️ button */
+  .wrap { padding-bottom: 110px; }                         /* room for the ⚙️ button */
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  details.p { margin: 0 0 14px; background: #fff; border: var(--line); border-radius: 18px 18px 18px 6px; box-shadow: var(--pop); }
+  details.p > summary { list-style: none; cursor: pointer; font: 24px "Patrick Hand", cursive; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 14px; }
+  details.p > summary::-webkit-details-marker { display: none; }
+  details.p > summary::after { content: "▸"; margin-left: auto; }
+  details.p[open] > summary::after { content: "▾"; }
+  details.p[open] > summary { background: #ffe6d3; border-radius: 15px 15px 0 0; }
+  details.p > div { padding: 8px 14px 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; align-items: center; }
+  .btn.on { background: var(--sun); }
+  .btn.add { background: var(--mint); }
+  #board { width: 100%; height: auto; max-height: 72vh; background: #f4efe2; border: 2.5px solid var(--ink); border-radius: 14px; touch-action: none; display: block; }
+  .hint { font-size: 15px; margin: 4px 0; }
+  .warn { color: #b3402c; font-weight: 700; }
+  .steps { display: grid; gap: 8px; }
+  .step { display: grid; grid-template-columns: 78px 1fr; gap: 8px; align-items: center; background: #e3f0fc; border: 2.5px solid #5d8fc2; border-radius: 12px; padding: 6px; }
+  .step svg { width: 78px; height: 78px; background: #fff; border-radius: 8px; }
+  .step b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #5d8fc2; color: #fff; margin-right: 4px; }
+  .step input { width: 100%; min-height: 44px; font: 600 16px var(--ui); border: 2px solid #5d8fc2; border-radius: 10px; padding: 4px 8px; }
+  .sheets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sheets div { background: #fff; border: 2px solid #eee4cc; border-radius: 8px; }
+  .sheets svg { width: 100%; height: auto; display: block; }
+  label.f { display: block; font-weight: 700; margin: 6px 0 2px; }
+  .field { width: 100%; }
+  .mine li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-top: 2px solid #eee4cc; }
+  .mine { list-style: none; padding: 0; margin: 0; }
+  #shareOut { width: 100%; font-size: 13px; }
 </style>
 </head>
 <body>
 <header class="top">
-  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small>Design</small></h1>
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small>✏️ Design your own plane</small></h1>
 </header>
 <main class="wrap">
-  <a class="btn back" href="index.html">◀ Home</a>
-  <div class="soon"><h3>Coming: Design</h3>
-    <p>A drawing board for your own plane: pick a sheet (square, letter, or your own size), draw fold lines in mountain or valley style,
-    number the steps, add a name and a short blurb, then print the sheet and the instructions. Later: vary a fold a little and fly the versions to compare.</p>
-    <p><small>Not built yet. Questions are in <code>convo/convo v0.3.md</code>.</small></p></div>
+  <div class="grid2">
+    <div>
+      <details class="p" open><summary>✏️ Draw the next fold</summary><div>
+        <svg id="board" viewBox="0 0 850 1100" role="img" aria-label="The paper as it looks now"></svg>
+        <p class="hint" id="hint">Tap two points on the paper to draw a fold line. Drag a dot to move it.</p>
+        <div class="row seg" id="typeSeg">
+          <button class="btn on" data-type="valley" type="button">⤵ Valley · in</button>
+          <button class="btn" data-type="mountain" type="button">⤴ Mountain · out</button>
+          <button class="btn" data-type="crease" type="button">↕ Fold &amp; open</button>
+        </div>
+        <div class="row">
+          <button class="btn on" id="layAll" type="button">All layers</button>
+          <button class="btn" id="layTop" type="button">Top flap only</button>
+          <button class="btn" id="flipSide" type="button">⇄ Other side moves</button>
+          <button class="btn on" id="snap" type="button">📌 Snap</button>
+        </div>
+        <div class="row">
+          <button class="btn add" id="addFold" type="button" disabled>✅ Add this fold</button>
+          <button class="btn" id="addTurn" type="button">↻ Turn over</button>
+          <button class="btn" id="addNote" type="button">💬 Add a note</button>
+          <button class="btn" id="undo" type="button">↶ Undo</button>
+          <button class="btn" id="clearLine" type="button">✖ Clear line</button>
+        </div>
+        <p class="hint" id="msg"></p>
+      </div></details>
+      <details class="p" open><summary>🔢 Steps <small id="nSteps"></small></summary><div><div class="steps" id="steps"></div></div></details>
+    </div>
+    <div>
+      <details class="p" open><summary>📄 Paper</summary><div>
+        <div class="row" id="paperSeg">
+          <button class="btn" data-paper="letter" type="button">Letter</button>
+          <button class="btn" data-paper="square" type="button">Square</button>
+          <button class="btn" data-paper="custom" type="button">Custom</button>
+        </div>
+        <div class="row" id="customRow" hidden>
+          <label>Width (in) <input class="field" id="cw" type="number" min="2" max="8.5" step="0.25" style="width:90px"></label>
+          <label>Height (in) <input class="field" id="ch" type="number" min="2" max="11" step="0.25" style="width:90px"></label>
+          <button class="btn" id="setCustom" type="button">Use this size</button>
+        </div>
+        <p class="hint">Square and custom sheets print on letter paper with a cut line.</p>
+      </div></details>
+      <details class="p" open><summary>🏷️ Name and look</summary><div>
+        <label class="f" for="dName">Name</label><input class="field" id="dName" maxlength="40">
+        <label class="f" for="dBy">Designed by (first name)</label><input class="field" id="dBy" maxlength="30">
+        <label class="f" for="dBlurb">Short story</label><textarea class="field" id="dBlurb" rows="3" maxlength="280"></textarea>
+        <label class="f">Which printed side is the outside?</label>
+        <div class="row" id="outSeg"><button class="btn" data-out="front" type="button">Front</button><button class="btn" data-out="back" type="button">Back</button></div>
+        <label class="f" for="dPat">Outside pattern</label><select class="field" id="dPat"></select>
+        <label class="f" for="dIn">Inside pattern</label><select class="field" id="dIn"></select>
+      </div></details>
+      <details class="p" open><summary>🖨️ Sheet</summary><div>
+        <div class="sheets"><div id="sFront"></div><div id="sBack"></div></div>
+        <p class="hint" id="report"></p>
+        <div class="row">
+          <button class="btn planes" id="printPlane" type="button">🖨️ Print the plane</button>
+          <button class="btn instr" id="printInstr" type="button">📄 Print instructions</button>
+        </div>
+        <div class="row">
+          <button class="btn mint" id="save" type="button">💾 Save</button>
+          <button class="btn" id="share" type="button">🔗 Share link</button>
+        </div>
+        <input class="field" id="shareOut" readonly hidden>
+      </div></details>
+      <details class="p"><summary>📁 My designs</summary><div>
+        <div class="row"><button class="btn" id="newDesign" type="button">➕ New design</button></div>
+        <ul class="mine" id="mine"></ul>
+      </div></details>
+    </div>
+  </div>
 </main>
 <script src="js/fold.js"></script>
 <script src="data/planes.js"></script>
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
 <script src="js/settings.js"></script>
-<script>APP.init(PA.drawerHtml()); PA.wire();</script>
+<script src="js/codec.js"></script>
+<script src="js/board.js"></script>
 </body>
 </html>
