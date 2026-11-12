@@ -126,6 +126,9 @@
   }
 
   // ---------- ⚙️ drawer ----------
+  // a collapsible settings group: header with an icon and a name, ▸/▾; its open/closed state is kept on this device
+  const OPENKEY = (C.prefix || "app") + ".drawerOpen";
+  const group = (id, title, html, open = false) => `<details class="dg" data-g="${id}"${open ? " open" : ""}><summary>${title}</summary><div class="dgBody">${html}</div></details>`;
   function init(extra = "", foot = "") {
     const here = location.pathname.split("/").pop() || "index.html";
     const links = C.links || [];
@@ -134,9 +137,8 @@
       <div class="drawer noprint" id="drawer" hidden>
         <h2>Settings</h2>
         <div id="drawerExtra">${extra}</div>
-        <h3>Pages</h3>
-        <ul>${links.filter(([h]) => h !== here).map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join("")}</ul>
-        <h3>Database</h3>
+        ${group("pages", "🧭 Pages", `<ul>${links.filter(([h]) => h !== here).map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join("")}</ul>`)}
+        ${group("db", "☁️ Database", `
         <p><small id="syncMsg">${esc(sync.message)}</small></p>
         <form id="signForm" class="row" hidden>
           <input class="field" id="signEmail" type="email" autocomplete="username" placeholder="Email" style="width:100%">
@@ -149,13 +151,18 @@
           <button class="btn" id="signOut" type="button" hidden>Sign out</button>
         </div>
         <div id="dbResult"><small></small></div>
-        <label><input type="checkbox" id="showErrors"> Show errors</label>
-        ${foot}
+        <label><input type="checkbox" id="showErrors"> Show errors</label>`)}
+        ${foot ? group("version", "ℹ️ Version", foot) : ""}
       </div>
       <pre class="errors noprint" id="errors" hidden></pre>`);
     const top = document.querySelector(".top");
     if (top && !document.getElementById("pill")) top.insertAdjacentHTML("beforeend", `<span class="chip noprint" id="pill">💾 this device</span>`);
     const drawer = document.getElementById("drawer"), form = document.getElementById("signForm");
+    const opened = store.get(OPENKEY, {});
+    drawer.querySelectorAll("details.dg").forEach(dg => {
+      if (dg.dataset.g in opened) dg.open = !!opened[dg.dataset.g];
+      dg.addEventListener("toggle", () => { const o = store.get(OPENKEY, {}); o[dg.dataset.g] = dg.open; store.set(OPENKEY, o); });
+    });
     const refreshForm = () => { form.hidden = !!sync.session || !ok(); document.getElementById("signOut").hidden = !sync.session; };
     document.getElementById("gear").addEventListener("click", () => { drawer.hidden = !drawer.hidden; if (!drawer.hidden) refreshForm(); });
     document.getElementById("showErrors").addEventListener("change", e => { document.getElementById("errors").hidden = !e.target.checked; });
@@ -203,6 +210,6 @@
     img._go = go; io.observe(img);
   }
 
-  const api = { store, param, esc, logError, reviews, addReview, resolveFlag, openFlags, isFlagged, latest, init, syncNow, printPages, toJpeg, lazyThumb, onReviews: null };
+  const api = { group, store, param, esc, logError, reviews, addReview, resolveFlag, openFlags, isFlagged, latest, init, syncNow, printPages, toJpeg, lazyThumb, onReviews: null };
   root.APP = api;
 })(window);
