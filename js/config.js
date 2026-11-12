@@ -9,5 +9,5 @@ window.APP_CONFIG = {
   url: "https://twvqvutrcobedvuhnzxq.supabase.co",
   key: "sb_publishable_eqUo8HEdEB1hMQM4CpSVqA_9i6b0qCo",
   timeoutMs: 8000,
-  links: [["index.html", "🏠 Home"], ["pack.html", "🖨️ Print several"], ["research/index.html", "🔭 How planes fly"], ["../index.html", "🌀 Felix Maze"]]
+  links: [["index.html", "🏠 Home"], ["build.html", "🛠️ Build"], ["fly.html", "✈️ Fly"], ["design.html", "✏️ Design"], ["photo.html", "📸 Photo booth"], ["research/index.html", "🔭 How planes fly"], ["v1/index.html", "📦 V1 archive"]]
 };

@@ -8,53 +8,39 @@
 <link rel="stylesheet" href="css/app.css">
 <title>Paper Airplanes</title>
 <style>
-  .cards { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-  .card .pic { display: grid; place-items: center; background: #fff; border: 2px solid #eee4cc; border-radius: 10px; aspect-ratio: 1; }
-  .card .pic svg { width: 80%; height: auto; }
-  .badge { position: absolute; top: 8px; right: 8px; font: 700 13px var(--ui); border: 2px solid var(--ink); border-radius: 8px; padding: 0 6px; background: var(--peach); }
-  .badge.ok { background: var(--mint); }
-  .quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 4px 0 14px; }
-  .quick .btn { width: 100%; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 8px 0 18px; }
+  .mode { display: flex; flex-direction: column; gap: 6px; min-height: 150px; padding: 18px; color: var(--ink); text-decoration: none;
+    border: var(--line); border-radius: 26px 26px 26px 8px; box-shadow: 0 6px 0 var(--ink); }
+  .mode:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+  .mode .big { font-size: 40px; line-height: 1; }
+  .mode b { font: 700 26px var(--hand, "Patrick Hand", cursive); }
+  .mode small { font-size: 15px; }
+  .m-build { background: var(--mint); } .m-fly { background: var(--sky); } .m-design { background: var(--peach); } .m-photo { background: var(--sun); }
+  .soon { border: var(--line); border-radius: 18px; background: #fff; padding: 14px 16px; box-shadow: var(--pop); margin-top: 12px; }
+  .soon h3 { font: 24px "Patrick Hand", cursive; margin: 0 0 6px; }
+  .back { display: inline-block; margin-bottom: 10px; }
+  .wrap { padding-bottom: 110px; }   /* room for the ⚙️ button */
 </style>
 </head>
 <body>
 <header class="top">
-  <h1 class="title">Paper Airplanes <small>Print at 100%, two-sided. Fold on the lines, in order. Fly!</small></h1>
-  <span class="chip sun" id="count">…</span>
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small>Build · fly · design · share</small></h1>
 </header>
 <main class="wrap">
-  <div class="quick">
-    <a class="btn go" href="pack.html">🖨️ Print several</a>
-    <a class="btn mint" href="research/index.html">🔭 How planes fly</a>
+  <p class="note">Pick what you want to do today.</p>
+  <div class="modes">
+    <a class="mode m-build" href="build.html"><span class="big">🛠️</span><b>Build</b><small>Pick a plane, print it, fold it, rate it.</small></a>
+    <a class="mode m-fly" href="fly.html"><span class="big">✈️</span><b>Fly</b><small>Learn what makes a plane fly, and tweak it.</small></a>
+    <a class="mode m-design" href="design.html"><span class="big">✏️</span><b>Design</b><small>Draw your own folds and make a new plane.</small></a>
+    <a class="mode m-photo" href="photo.html"><span class="big">📸</span><b>Photo booth</b><small>Take a picture of your plane and share how to fold it.</small></a>
   </div>
-  <p class="note">Dashed line <b>- - -</b> = fold <b>in</b> (toward you). Dash-dot <b>-·-·-</b> = fold <b>out</b> (away from you). Follow the numbers. Before your first print, use ⚙️ → 🧪 alignment test.</p>
-  <div class="cards" id="cards"></div>
+  <p class="note">Older version: <a href="v1/index.html">V1 archive</a> (also in ⚙️).</p>
 </main>
 <script src="js/fold.js"></script>
 <script src="data/planes.js"></script>
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
 <script src="js/settings.js"></script>
-<script>
-  (function () {
-    const { esc } = APP;
-    APP.init(PA.drawerHtml(), PA.foot());
-    PA.wire();
-    function render() {
-      const list = PA.planes();
-      document.getElementById("count").textContent = list.length + " planes" + (PA.get().show === "approved" ? " (approved)" : " (previews)");
-      const box = document.getElementById("cards");
-      box.innerHTML = list.length ? "" : "<p class='note'>No approved planes yet. Switch ⚙️ → Planes to show → All (previews).</p>";
-      list.forEach(p => {
-        const st = FOLD.run(p);
-        const a = document.createElement("a"); a.className = "card"; a.href = "plane.html?code=" + p.code;
-        a.innerHTML = `<span class="badge${p.approved ? " ok" : ""}">${p.approved ? "✅ approved" : "preview"}</span><div class="pic">${FOLD.picture(st[st.length - 1], 200)}</div><b>${esc(p.name)}</b><div class="meta"><span>#${p.code}</span><span class="t">${"●".repeat(p.level)}${"○".repeat(3 - p.level)}</span><span class="s">${p.steps.length} steps</span></div>`;
-        box.append(a);
-      });
-    }
-    PA.onChange = render;
-    render();
-  })();
-</script>
+<script>APP.init(PA.drawerHtml()); PA.wire();</script>
 </body>
 </html>

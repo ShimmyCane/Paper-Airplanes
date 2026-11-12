@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>Paper Airplanes Print Several</title>
+<style>
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small>Print several · one plane = one sheet, two-sided</small></h1>
+</header>
+<main class="wrap">
+  <div class="row"><button class="btn go" id="print" type="button">🖨️ Print <span id="n">0</span> sheets</button></div>
+  <h2 class="step">Which planes?</h2><div class="tags" id="pick"></div>
+  <h2 class="step">Copies of each</h2><div class="tags" id="copies"></div>
+  <p class="note">In the print box: <b>scale 100% (actual size)</b>, not "fit to page", and <b>two-sided</b>. Instructions, decoration, the printer flip and the back alignment come from ⚙️.</p>
+</main>
+<script src="js/fold.js"></script>
+<script src="data/planes.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/settings.js"></script>
+<script>
+  (function () {
+    const { esc, store } = APP;
+    APP.init(PA.drawerHtml(), PA.foot());
+    PA.wire();
+    const chosen = new Set(store.get("pa.pack", (window.PA_PLANES || []).map(p => p.code)));
+    let copies = store.get("pa.copies", 1);
+    const list = () => PA.planes().filter(p => chosen.has(p.code));
+    function render() {
+      document.getElementById("pick").innerHTML = PA.planes().map(p => `<button class="tag${chosen.has(p.code) ? " on" : ""}" data-code="${p.code}" type="button">${esc(p.name)}${p.approved ? " ✅" : ""}</button>`).join("") || "<p>No planes to show (⚙️ → Planes to show).</p>";
+      document.getElementById("copies").innerHTML = [1, 2, 3, 5].map(n => `<button class="tag${copies === n ? " on" : ""}" data-copies="${n}" type="button">${n}</button>`).join("");
+      document.getElementById("n").textContent = list().length * copies;
+    }
+    document.getElementById("pick").addEventListener("click", e => { const b = e.target.closest("[data-code]"); if (!b) return; chosen.has(b.dataset.code) ? chosen.delete(b.dataset.code) : chosen.add(b.dataset.code); store.set("pa.pack", [...chosen]); render(); });
+    document.getElementById("copies").addEventListener("click", e => { const b = e.target.closest("[data-copies]"); if (!b) return; copies = +b.dataset.copies; store.set("pa.copies", copies); render(); });
+    document.getElementById("print").addEventListener("click", () => { const l = list(); if (l.length) PA.printPlanes(l, copies); });
+    PA.onChange = render;
+    render();
+  })();
+</script>
+</body>
+</html>

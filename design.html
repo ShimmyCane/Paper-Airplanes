@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>Paper Airplanes · Design</title>
+<style>
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 8px 0 18px; }
+  .mode { display: flex; flex-direction: column; gap: 6px; min-height: 150px; padding: 18px; color: var(--ink); text-decoration: none;
+    border: var(--line); border-radius: 26px 26px 26px 8px; box-shadow: 0 6px 0 var(--ink); }
+  .mode:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+  .mode .big { font-size: 40px; line-height: 1; }
+  .mode b { font: 700 26px var(--hand, "Patrick Hand", cursive); }
+  .mode small { font-size: 15px; }
+  .m-build { background: var(--mint); } .m-fly { background: var(--sky); } .m-design { background: var(--peach); } .m-photo { background: var(--sun); }
+  .soon { border: var(--line); border-radius: 18px; background: #fff; padding: 14px 16px; box-shadow: var(--pop); margin-top: 12px; }
+  .soon h3 { font: 24px "Patrick Hand", cursive; margin: 0 0 6px; }
+  .back { display: inline-block; margin-bottom: 10px; }
+  .wrap { padding-bottom: 110px; }   /* room for the ⚙️ button */
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 class="title"><a href="index.html">Paper Airplanes</a> <small>Design</small></h1>
+</header>
+<main class="wrap">
+  <a class="btn back" href="index.html">◀ Home</a>
+  <div class="soon"><h3>Coming: Design</h3>
+    <p>A drawing board for your own plane: pick a sheet (square, letter, or your own size), draw fold lines in mountain or valley style,
+    number the steps, add a name and a short blurb, then print the sheet and the instructions. Later: vary a fold a little and fly the versions to compare.</p>
+    <p><small>Not built yet. Questions are in <code>convo/convo v0.3.md</code>.</small></p></div>
+</main>
+<script src="js/fold.js"></script>
+<script src="data/planes.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/settings.js"></script>
+<script>APP.init(PA.drawerHtml()); PA.wire();</script>
+</body>
+</html>

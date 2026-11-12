@@ -1,5 +1,7 @@
 # Paper Airplanes — Schematic
 
+**Round 3 (ground up), 2026-11-12:** the first app is archived as **V1** (`v1/`, linked from ⚙️). The new home has four modules: **Build** (`build.html`, today's model cards), **Fly** (`fly.html`, placeholder), **Design** (`design.html`, placeholder), **Photo booth** (`photo.html`, placeholder). Plans and open questions: `convo/convo v0.3.md`. The sections below describe V1 unless marked.
+
 **Track:** A. Family play. The printed sheet is the product; the pages pick, print and record flights.
 **Status:** Round 3 (v0.3.0) — seven planes as previews (none approved); Classic Dart has test versions. Not folded or flown yet.
 **Platform:** plain HTML/CSS/JS, no build, GitHub Pages (inside Felix-Maze). Letter portrait, printed at 100%, two-sided.
