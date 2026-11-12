@@ -34,7 +34,8 @@
 
 ## Now (ground up)
 
-- [ ] Draw a first plane of your own on the board, print it, fold it, and tell Claude what was hard
+- [x] 3D view (Design board and plane pages); saved designs and notes go to the family database
+- [ ] Draw a first plane of your own on the board, sign in, Save, and Claude reads it from the database
 - [ ] Fly: pictures first, little text (for you and the kids)
 - [ ] Photo booth: photo, a stamped line, and a QR code that opens the share page
 

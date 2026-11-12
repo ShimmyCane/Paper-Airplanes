@@ -16,3 +16,5 @@
 **Database:** `pa_flights` is live in the Family project (verified 2026-11-10). Flights carry the test code in their note text (no new column).
 
 **Round 3 (2026-11-12, ground up):** V1 frozen in `v1/` (linked from ⚙️). New home: Build (`build.html`, the V1 cards), Fly and Photo booth (placeholders), **Design** (built). The Design board draws each fold in the view at that step, so the engine folds it and the sheet is automatic. Paper is a plane property (`paper: {w, h}`); square and custom print on letter with a cut line. `share.html#d=…` holds the whole design in the link (no database). Checker covers square and custom sheets and unique pattern ids. Answers to convo v0.3 are recorded there.
+
+**v0.9.0 (2026-11-12):** 3D view (`js/view3d.js`) on the Design board and plane pages. Saved designs and ⚙️ notes become open `flag` rows in `pa_flights` with the design in `reason` (`design:…`); read with `node tools/design_report.js`. Verified with a rolled-back insert (accepted, nothing left). The first saved design (before this) stayed on the device and was not reviewed, at Jimmy's say-so.

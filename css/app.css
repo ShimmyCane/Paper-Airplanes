@@ -51,6 +51,10 @@ a { color: var(--coral-dark); font-weight: 700; }
 .btn.mint { background: var(--mint); }
 .btn.planes { background: #ffb3ad; }      /* pastel red: print the planes */
 .btn.instr { background: var(--sky); }      /* pastel blue: print the steps / instructions */
+.v3d { width: 100%; height: auto; display: block; background: #f4efe2; border: 2.5px solid var(--ink); border-radius: 14px; touch-action: none; cursor: grab; }
+.v3dRow { flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.v3dRow input[type=range] { flex: 1; min-width: 140px; min-height: 44px; }
+.v3dOpenL { display: flex; align-items: center; gap: 8px; flex: 1; font-weight: 700; }
 .btn:disabled { opacity: .45; cursor: default; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .wrap { padding: 0 18px 110px; max-width: 1280px; margin: 0 auto; }

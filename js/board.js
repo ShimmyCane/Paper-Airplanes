@@ -134,10 +134,11 @@
       : `<p class="hint">No steps yet. Draw the first fold on the paper.</p>`;
   }
   let sheetTimer = 0;
+  const syncWhere = () => PA.setWhere({ item: plane.code, label: plane.name + " (design)", design: C.encode(d) });
   $("steps").addEventListener("input", e => {                // update the words in place, so typing keeps its focus
     const k = e.target.dataset.k; if (k == null) return;
     d.steps[+k].txt = e.target.value; save();
-    clearTimeout(sheetTimer); sheetTimer = setTimeout(() => { plane = C.toPlane(d); drawSheet(); }, 400);
+    clearTimeout(sheetTimer); sheetTimer = setTimeout(() => { plane = C.toPlane(d); syncWhere(); drawSheet(); }, 400);
   });
 
   // ---------- the printed sheet ----------
@@ -164,7 +165,7 @@
     $("customRow").hidden = kind !== "custom" && !$("customRow").dataset.open;
     $("cw").value = d.paper.w / 100; $("ch").value = d.paper.h / 100;
   }
-  [["dName", "name"], ["dBy", "by"], ["dBlurb", "blurb"]].forEach(([id, k]) => $(id).addEventListener("input", () => { d[k] = $(id).value; save(); clearTimeout(sheetTimer); sheetTimer = setTimeout(() => { plane = C.toPlane(d); drawSheet(); }, 400); }));
+  [["dName", "name"], ["dBy", "by"], ["dBlurb", "blurb"]].forEach(([id, k]) => $(id).addEventListener("input", () => { d[k] = $(id).value; save(); clearTimeout(sheetTimer); sheetTimer = setTimeout(() => { plane = C.toPlane(d); syncWhere(); drawSheet(); }, 400); }));
   $("dPat").addEventListener("change", () => { d.pattern = $("dPat").value; renderAll(); });
   $("dIn").addEventListener("change", () => { d.inside = $("dIn").value; renderAll(); });
   $("outSeg").addEventListener("click", e => { const b = e.target.closest("[data-out]"); if (!b) return; d.outside = b.dataset.out; renderAll(); });
@@ -197,11 +198,14 @@
       <button class="btn" data-load="${e.id}" type="button">Open</button><button class="btn" data-del="${e.id}" type="button">🗑️</button></li>`).join("") : `<li><small>Nothing saved yet.</small></li>`;
   }
   $("save").addEventListener("click", () => {
+    clearTimeout(sheetTimer); plane = C.toPlane(d); syncWhere(); drawSheet();
     const list = mine(), at = new Date().toISOString();
     if (!myId) myId = "d-" + Date.now().toString(36);
     const i = list.findIndex(e => e.id === myId), entry = { id: myId, at, d: JSON.parse(JSON.stringify(d)) };
     if (i >= 0) list[i] = entry; else list.push(entry);
-    APP.store.set(MINE, list); save(); drawMine(); $("msg").textContent = "💾 Saved on this device.";
+    APP.store.set(MINE, list); save(); drawMine();
+    APP.addReview({ code: plane.code, kind: "flag", reason: "design:" + C.encode(d), note: "Saved design: " + (d.name || "My plane") });
+    $("msg").textContent = "💾 Saved on this device. It goes to the family database when you are signed in (⚙️), so Claude can see it.";
   });
   $("mine").addEventListener("click", e => {
     const l = e.target.closest("[data-load]"), x = e.target.closest("[data-del]");
@@ -215,13 +219,22 @@
     plane = C.toPlane(d);
     try { states = FOLD.run(plane); } catch (e) { APP.logError("fold: " + e.message); d.steps.pop(); plane = C.toPlane(d); states = FOLD.run(plane); }
     save(); drawDetails(); drawBoard(); drawSteps(); drawSheet(); drawMine();
-    PA.setWhere({ item: plane.code, label: plane.name + " (design)" });
+    syncWhere();
+    if (viewer) viewer.refresh();
   }
+  // ---------- the 3-D view (fold it step by step, turn it, open the wings) ----------
+  let viewer = null;
+  $("toggle3d").addEventListener("click", () => {
+    if (viewer) { viewer.stop(); viewer = null; $("v3d").hidden = true; $("v3d").innerHTML = ""; $("tools").hidden = false; $("toggle3d").classList.remove("on"); $("toggle3d").textContent = "🧊 3D view"; drawBoard(); return; }
+    if (!d.steps.length) { $("msg").textContent = "Draw a fold first, then look at it in 3D."; return; }
+    $("tools").hidden = true; $("v3d").hidden = false; $("toggle3d").classList.add("on"); $("toggle3d").textContent = "✏️ Back to drawing";
+    viewer = root.VIEW3D.mount($("v3d"), () => plane);
+  });
   APP.init(PA.drawerHtml(), PA.foot());
   PA.wire();
   PA.onChange = () => drawSheet();
   renderAll();
   root.addEventListener("resize", () => drawBoard());
   // for checks: draw a fold from code, the same as two taps and "Add this fold"
-  root.DESIGN = { get: () => d, plane: () => plane, line: (a, b) => { A = a; B = b; drawBoard(); return preview(); }, set: o => { Object.assign(opt, o); drawBoard(); }, add: () => $("addFold").click(), turn: () => $("addTurn").click(), note: () => $("addNote").click() };
+  root.DESIGN = { viewer: () => viewer, get: () => d, plane: () => plane, line: (a, b) => { A = a; B = b; drawBoard(); return preview(); }, set: o => { Object.assign(opt, o); drawBoard(); }, add: () => $("addFold").click(), turn: () => $("addTurn").click(), note: () => $("addNote").click() };
 })(window);

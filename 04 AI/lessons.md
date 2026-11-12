@@ -42,3 +42,11 @@ Taken from `Index/04 AI/lessons_pool.md` §10 (settings), §Feedback, and §Prin
 - **Shared ids break when pages share a document.** Every sheet used `id="dp"` for its pattern, so printing several planes gave them all the first plane's pattern. Make SVG ids unique per item when pages print together.
 - **A check that fails may be the test.** "The model is bigger than its paper" was wrong: a slanted wing fold can poke past an edge, as real paper does. Test what must be true (it folded: smaller area), not what looks true.
 - **Keep the user's words in the convo**, then add a short "what Claude took from it" below, so a speech-to-text answer is not silently reworded.
+
+## 2026-11-12 (3D view, designs to the database)
+
+- **Say plainly where data lives.** "I've saved a plane, take a look" assumed Claude could see it; saves were device-only. Now a save goes to the database, and the message says so.
+- **Reuse an existing kind before a schema change.** An open `flag` with the design in `reason` fits `pa_flights` as it is; a rolled-back insert proved it before shipping.
+- **Context that is captured once goes stale.** The note recorded the design as it was before the name was typed. Refresh "what is on screen" on every change, and rebuild from the live state at the moment of saving.
+- **Animate folds from the engine, not by hand.** A flap's start is its folded position mirrored back over the line, swung by 0–180°; negating its layer height first lands it exactly on the flat model.
+- **Check a 3-D view from several angles before judging it.** The first picture looked wrong; four views showed the wings opening correctly and the labels were the mistake. (Jimmy's rule: rotate the view.)
