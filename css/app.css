@@ -51,6 +51,15 @@ a { color: var(--coral-dark); font-weight: 700; }
 .btn.mint { background: var(--mint); }
 .btn.planes { background: #ffb3ad; }      /* pastel red: print the planes */
 .btn.instr { background: var(--sky); }      /* pastel blue: print the steps / instructions */
+/* ⚙️ groups: collapsible, header always visible */
+.dg { border: 2.5px solid var(--ink); border-radius: 14px; margin: 8px 0; background: #fff; }
+.dg > summary { list-style: none; cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 4px 12px; font-weight: 700; font-size: 17px; }
+.dg > summary::-webkit-details-marker { display: none; }
+.dg > summary::after { content: "▸"; margin-left: auto; }
+.dg[open] > summary::after { content: "▾"; }
+.dg[open] > summary { background: var(--sun); border-radius: 11px 11px 0 0; }
+.dgBody { padding: 4px 12px 10px; }
+.dgBody h3 { font-size: 15px; margin: 10px 0 4px; }
 .v3d { width: 100%; height: auto; display: block; background: #f4efe2; border: 2.5px solid var(--ink); border-radius: 14px; touch-action: none; cursor: grab; }
 .v3dRow { flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .v3dRow input[type=range] { flex: 1; min-width: 140px; min-height: 44px; }

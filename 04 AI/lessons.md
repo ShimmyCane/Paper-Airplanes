@@ -50,3 +50,9 @@ Taken from `Index/04 AI/lessons_pool.md` §10 (settings), §Feedback, and §Prin
 - **Context that is captured once goes stale.** The note recorded the design as it was before the name was typed. Refresh "what is on screen" on every change, and rebuild from the live state at the moment of saving.
 - **Animate folds from the engine, not by hand.** A flap's start is its folded position mirrored back over the line, swung by 0–180°; negating its layer height first lands it exactly on the flat model.
 - **Check a 3-D view from several angles before judging it.** The first picture looked wrong; four views showed the wings opening correctly and the labels were the mistake. (Jimmy's rule: rotate the view.)
+
+## 2026-11-12 (settings groups, removing steps)
+
+- **Group settings by the job, not by when they were added.** "Print instructions" had ended up in the middle of the alignment steps. Groups: printer and alignment, sheets and planes, notes, pages, database, version.
+- **Only offer to delete what is safe to delete.** Steps that never move the paper (turn pairs that cancel, notes, fold-and-open) can go without changing any later fold; other steps would move every fold after them, so only Undo removes those. Prove it: same sheet after removal as without.
+- **Renumber references when a list shrinks.** Top-flap choices point at steps by number (s8 → s6 after removing two turns).

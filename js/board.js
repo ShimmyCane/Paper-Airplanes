@@ -116,7 +116,10 @@
     const txt = opt.type === "crease" ? C.DEFAULT_TEXT.crease : pv.sel ? (opt.type === "mountain" ? "Fold the top flap away, along the line." : "Fold the top flap over, along the line.") : C.DEFAULT_TEXT[opt.type];
     addStep({ t: opt.type, a: A.map(r1), b: B.map(r1), m: pv.m.map(r1), sel: pv.sel, txt });
   });
-  $("addTurn").addEventListener("click", () => addStep({ t: "turn" }));
+  $("addTurn").addEventListener("click", () => {
+    addStep({ t: "turn" });
+    if (turnPartner(d.steps.length - 1) >= 0) $("msg").textContent = "Two turns in a row cancel out. You can remove both in the steps list.";
+  });
   $("addNote").addEventListener("click", () => addStep({ t: "open", txt: C.DEFAULT_TEXT.open }));
   $("undo").addEventListener("click", () => { if (d.steps.length) { d.steps.pop(); renderAll(); } });
   $("clearLine").addEventListener("click", () => { A = B = null; drawBoard(); });
@@ -128,9 +131,35 @@
   $("snap").addEventListener("click", () => { opt.snap = !opt.snap; $("snap").classList.toggle("on", opt.snap); drawBoard(); });
 
   // ---------- the steps list (words can be edited; they print on the sheet) ----------
+  // steps that do not move the paper can go without changing any later fold: notes, fold-and-open, and two turns that
+  // cancel out (with only notes between them). Later "top flap" choices point at steps by number, so they are renumbered.
+  const turnPartner = k => {
+    if (d.steps[k].t !== "turn") return -1;
+    for (const dir of [1, -1]) { for (let j = k + dir; j >= 0 && j < d.steps.length; j += dir) { const t = d.steps[j].t; if (t === "turn") return j; if (t !== "open") break; } }
+    return -1;
+  };
+  function removeSteps(list) {
+    const gone = new Set(list);
+    if ([...gone].some(i => !["turn", "open", "crease"].includes(d.steps[i].t))) return;
+    d.steps = d.steps.filter((st, i) => !gone.has(i)).map(st => {
+      if (!st.sel) return st;
+      const n = +st.sel.slice(1), shift = [...gone].filter(i => i < n - 1).length;
+      return Object.assign({}, st, { sel: "s" + (n - shift) });
+    });
+    A = B = null; renderAll();
+  }
+  $("steps").addEventListener("click", e => {
+    const both = e.target.closest("[data-pair]"), one = e.target.closest("[data-rm]");
+    if (both) removeSteps(both.dataset.pair.split(",").map(Number));
+    if (one) removeSteps([+one.dataset.rm]);
+  });
   function drawSteps() {
     $("nSteps").textContent = d.steps.length ? `· ${d.steps.length}` : "";
-    $("steps").innerHTML = d.steps.length ? plane.steps.map((st, k) => `<div class="step">${FOLD.picture(states[k], 78, st.line || null)}<div><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : `<input data-k="${k}" value="${esc(d.steps[k].txt || "")}" aria-label="Words for step ${k + 1}">`}</div></div>`).join("")
+    $("steps").innerHTML = d.steps.length ? plane.steps.map((st, k) => {
+      const pj = turnPartner(k), tool = pj >= 0 ? `<button class="btn rm" data-pair="${Math.min(k, pj)},${Math.max(k, pj)}" type="button">🗑️ Remove both turns (${Math.min(k, pj) + 1} and ${Math.max(k, pj) + 1}): they cancel out</button>`
+        : d.steps[k].t === "open" || d.steps[k].t === "crease" ? `<button class="btn rm" data-rm="${k}" type="button" aria-label="Remove step ${k + 1}">🗑️</button>` : "";
+      return `<div class="step">${FOLD.picture(states[k], 78, st.line || null)}<div><b>${k + 1}</b>${st.type === "turn" ? "Turn it over." : `<input data-k="${k}" value="${esc(d.steps[k].txt || "")}" aria-label="Words for step ${k + 1}">`}${tool}</div></div>`;
+    }).join("")
       : `<p class="hint">No steps yet. Draw the first fold on the paper.</p>`;
   }
   let sheetTimer = 0;

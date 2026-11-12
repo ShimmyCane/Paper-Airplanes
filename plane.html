@@ -63,7 +63,7 @@
     const { esc, store } = APP;
     const all = (window.PA_PLANES || []).filter(p => !p.retired), p = PA.find(APP.param("code")) || all[0], i = all.indexOf(p);
     const PATHS = ["straight", "curve left", "curve right", "loop", "dive", "stall"];
-    APP.init(`<h3>✈️ Flight notes · ${esc(p.name)}</h3>
+    APP.init(APP.group("flight", `✈️ Flight notes · ${esc(p.name)}`, `
       <div class="flight">
         <label>Distance (feet) <input class="field" id="fDist" type="number" min="0" step="1" style="width:100px"></label>
         <label>Time in the air (s) <input class="field" id="fSec" type="number" min="0" step="0.1" style="width:100px"></label>
@@ -71,7 +71,7 @@
         <label>Easy to fold? <select class="field" id="fEase"><option value="3">😊 easy</option><option value="2">😐 OK</option><option value="1">😣 hard</option></select></label>
         <input class="field" id="fNote" placeholder="Notes: which step was tricky, what tweak helped" style="width:100%">
         <button class="btn mint" id="fSave" type="button">Save flight</button> <small id="fMsg"></small>
-      </div>` + PA.drawerHtml(), PA.foot());
+      </div>`, true) + PA.drawerHtml(), PA.foot());
     PA.wire();
     document.title = "Paper Airplanes #" + p.code;
     document.getElementById("sub").textContent = "#" + p.code + " · " + p.name;

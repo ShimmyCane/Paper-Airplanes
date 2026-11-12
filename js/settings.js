@@ -12,6 +12,7 @@
   const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
   const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.10.0 · Settings in collapsible groups; on the Design page, remove two turns that cancel out (and notes or fold-and-open steps)",
     "0.9.0 · 3D view: fold it step by step, turn it, open the wings; saved designs and notes go to the family database",
     "0.8.0 · Design: draw your own plane (letter, square or custom paper), print it and its instructions, save it, share a link",
     "0.7.0 · New home (Build, Fly, Design, Photo booth); the first app is kept as V1 (link above)",
@@ -66,32 +67,35 @@
     const s = get();
     const cell = (id, label) => `<input class="field" id="${id}" type="number" step="1" min="-5" max="5" inputmode="numeric" aria-label="${label}">`;
     const rows = ROWS.map((name, i) => `<tr><td>${name}</td><td>${cell(`a${i}xf`, name + ", across, front number")}${cell(`a${i}xb`, name + ", across, back number")}</td><td>${cell(`a${i}yf`, name + ", down, front number")}${cell(`a${i}yb`, name + ", down, back number")}</td><td><small id="d${i}">–</small></td></tr>`).join("");
+    const G = root.APP.group;
     return `${extra}
+      ${G("printer", "🖨️ Printer and alignment", `
       <h3>My printer</h3>${seg("printer", PRINTERS, s.printer)}
       <p><small>Each printer remembers its own alignment and flip. Pick yours once; next time, tap it to bring back its settings.</small></p>
-      <h3>Instructions on the sheet</h3>${seg("mode", [["verbose", "Lots of words"], ["short", "Number + in/out"], ["minimal", "Numbers only"]], s.mode)}
-      <h3>Outside decoration</h3>
-      <select class="field" id="decoSel" style="width:100%"><option value="bold"${s.deco === "bold" ? " selected" : ""}>Bold pattern</option><option value="faint"${s.deco === "faint" ? " selected" : ""}>Faint (80% see-through)</option><option value="none"${s.deco === "none" ? " selected" : ""}>None</option></select>
       <h3>Printer flips on the…</h3>${seg("flip", [["long", "Long edge"], ["short", "Short edge"]], s.flip)}
       <h3>Back alignment</h3>
       <p><small><b>How to:</b> 1. Print 🧪 (two sides, 100%). 2. Hold it up to a window. 3. At each numbered spot, find the back line that matches a front line. 4. Type the two numbers. 5. Save. Print again: all 0 means it lines up.</small></p>
       <div class="row"><button class="btn" id="testPrint" type="button">🧪 Print alignment test</button></div>
-      <h3>Print instructions</h3>
-      <div class="row"><button class="btn" id="instrOne" type="button">📄 One page</button><button class="btn" id="instrTwo" type="button">📄📄 Both sides</button></div>
       <table class="aln"><tr><th>Spot</th><th>Across: front · back</th><th>Down: front · back</th><th>mm</th></tr>${rows}</table>
       <div class="row" style="margin-top:8px"><button class="btn mint" id="alignSave" type="button">Save readings</button><button class="btn" id="alignZero" type="button">Reset to 0</button></div>
       <p><small id="alignMsg"></small></p>
       <p><small>Saved now: across <b id="oxNow">${s.ox}</b> mm · down <b id="oyNow">${s.oy}</b> mm · turn <b id="rotNow">${s.rot}</b>°</small></p>
-      <details><summary><small>Alignment log</small></summary><ul class="notes" id="alignLog"></ul></details>
-      <h3>Planes to show</h3>${seg("show", [["all", "All (previews)"], ["approved", "Approved only"]], s.show)}
-      <h3>📝 Notes for improvement</h3>
-      <p><small>Saved on this device with the page, the plane, the test code and the version.</small></p>
+      <details><summary><small>Alignment log</small></summary><ul class="notes" id="alignLog"></ul></details>`)}
+      ${G("sheet", "📄 Sheets and planes", `
+      <h3>Instructions on the sheet</h3>${seg("mode", [["verbose", "Lots of words"], ["short", "Number + in/out"], ["minimal", "Numbers only"]], s.mode)}
+      <h3>Outside decoration</h3>
+      <select class="field" id="decoSel" style="width:100%"><option value="bold"${s.deco === "bold" ? " selected" : ""}>Bold pattern</option><option value="faint"${s.deco === "faint" ? " selected" : ""}>Faint (80% see-through)</option><option value="none"${s.deco === "none" ? " selected" : ""}>None</option></select>
+      <h3>Print the how-to sheet</h3>
+      <div class="row"><button class="btn" id="instrOne" type="button">📄 One page</button><button class="btn" id="instrTwo" type="button">📄📄 Both sides</button></div>
+      <h3>Planes to show</h3>${seg("show", [["all", "All (previews)"], ["approved", "Approved only"]], s.show)}`)}
+      ${G("notes", "📝 Notes for improvement", `
+      <p><small>Saved on this device with the page, the plane, the test code and the version; sent to the family database when signed in.</small></p>
       <textarea class="field" id="noteText" rows="3" placeholder="What would make this better?" style="width:100%"></textarea>
       <div class="row" style="margin-top:6px"><button class="btn mint" id="noteSave" type="button">Save note</button><button class="btn" id="noteCopy" type="button">Copy notes</button><select class="field" id="noteFilter"><option value="open">Open</option><option value="all">All</option></select></div>
-      <ul class="notes" id="noteList"></ul>`;
+      <ul class="notes" id="noteList"></ul>`)}`;
   }
   // the version log, at the very bottom of ⚙️
-  const foot = () => `<h3>Version</h3><p><small><b>Version ${esc(root.APP_CONFIG.version || "")}</b></small></p>
+  const foot = () => `<p><small><b>Version ${esc(root.APP_CONFIG.version || "")}</b></small></p>
     <ul class="notes">${CHANGES.map(c => `<li><small>${esc(c)}</small></li>`).join("")}</ul>
     <p><small>Settings, notes and the alignment log stay on this device. Flights go to the family database once signed in.</small></p>`;
   const esc = s => root.APP.esc(s);
