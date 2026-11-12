@@ -47,6 +47,9 @@
   <div class="grid2">
     <div>
       <details class="p" open><summary>✏️ Draw the next fold</summary><div>
+        <div class="row"><button class="btn" id="toggle3d" type="button">🧊 3D view</button></div>
+        <div id="v3d" hidden></div>
+        <div id="tools">
         <svg id="board" viewBox="0 0 850 1100" role="img" aria-label="The paper as it looks now"></svg>
         <p class="hint" id="hint">Tap two points on the paper to draw a fold line. Drag a dot to move it.</p>
         <div class="row seg" id="typeSeg">
@@ -66,6 +69,7 @@
           <button class="btn" id="addNote" type="button">💬 Add a note</button>
           <button class="btn" id="undo" type="button">↶ Undo</button>
           <button class="btn" id="clearLine" type="button">✖ Clear line</button>
+        </div>
         </div>
         <p class="hint" id="msg"></p>
       </div></details>
@@ -120,6 +124,7 @@
 <script src="js/app.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/codec.js"></script>
+<script src="js/view3d.js"></script>
 <script src="js/board.js"></script>
 </body>
 </html>

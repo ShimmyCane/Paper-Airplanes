@@ -48,6 +48,7 @@
     <div><h3>Front (printed side up first)</h3><div class="paper" id="p1"></div></div>
     <div><h3>Back</h3><div class="paper" id="p2"></div></div>
   </div>
+  <div class="panel noprint"><h3>🧊 In 3D</h3><button class="btn" id="open3d" type="button">🧊 Show in 3D</button><div id="v3d"></div></div>
   <div class="panel noprint"><h3>The steps</h3><div class="steps" id="steps"></div><p><small id="report"></small></p></div>
   <div class="panel noprint"><h3>✈️ Flights</h3><div id="flights"></div><p><small>Add a flight in ⚙️ → Flight notes.</small></p></div>
 </main>
@@ -56,6 +57,7 @@
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/view3d.js"></script>
 <script>
   (function () {
     const { esc, store } = APP;
@@ -114,6 +116,12 @@
       APP.addReview({ code: p.code, kind: "flight", score: +document.getElementById("fEase").value, note: (tag + document.getElementById("fNote").value).trim(), extra: { distance_ft: num("fDist"), seconds: num("fSec"), path: document.getElementById("fPath").value } });
       document.getElementById("fMsg").textContent = "Saved ✓"; ["fDist", "fSec", "fNote"].forEach(id => { document.getElementById(id).value = ""; });
     });
+    let viewer = null;
+    document.getElementById("open3d").addEventListener("click", e => {
+      if (viewer) { viewer.stop(); viewer = null; document.getElementById("v3d").innerHTML = ""; e.target.textContent = "🧊 Show in 3D"; return; }
+      viewer = VIEW3D.mount(document.getElementById("v3d"), () => PA.planeFor(p)); e.target.textContent = "✖ Close 3D";
+    });
+    document.getElementById("vers").addEventListener("click", () => { if (viewer) setTimeout(() => viewer.refresh(), 0); });
     APP.onReviews = render; PA.onChange = render;
     render();
   })();

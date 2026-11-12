@@ -12,6 +12,7 @@
   const ALIGN_KEYS = ["ox", "oy", "rot", "flip"];
   const ROWS = ["1. Upper Left", "2. Upper Right", "3. Lower Left", "4. Lower Right", "5. Bottom Middle"];
   const CHANGES = [
+    "0.9.0 · 3D view: fold it step by step, turn it, open the wings; saved designs and notes go to the family database",
     "0.8.0 · Design: draw your own plane (letter, square or custom paper), print it and its instructions, save it, share a link",
     "0.7.0 · New home (Build, Fly, Design, Photo booth); the first app is kept as V1 (link above)",
     "0.6.0 · Print the steps as shown on the plane page (blue); the planes button is red; both sit side by side",
@@ -172,6 +173,9 @@
       const list = root.APP.store.get(NOTES, []), w = Object.assign({ page: location.pathname.split("/").pop() || "index.html", item: "", label: "" }, where);
       list.push({ id: "n-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), at: new Date().toISOString(), status: "open", text, where: w, version: root.APP_CONFIG.version || "" });
       root.APP.store.set(NOTES, list); box.value = ""; renderNow();
+      const n = list[list.length - 1];
+      root.APP.addReview({ code: (w.item || w.page) + "~" + n.id.slice(-5), kind: "flag", note: text,
+        reason: "note · " + w.page + (w.label ? " · " + w.label : "") + " · v" + n.version + (w.design ? " · design:" + w.design : "") });
     });
     const nc = document.getElementById("noteCopy"); if (nc) nc.addEventListener("click", () => {
       const out = JSON.stringify(root.APP.store.get(NOTES, []), null, 2);
